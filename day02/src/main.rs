@@ -49,9 +49,9 @@ fn parse(content: &str) -> Result<Vec<Vec<u32>>, ParseIntError> {
         .map(|line| {
             line.split_whitespace()
                 .map(str::parse::<u32>)
-                .collect::<Result<Vec<u32>, ParseIntError>>()
+                .collect::<Result<Vec<u32>, _>>()
         })
-        .collect::<Result<Vec<Vec<u32>>, ParseIntError>>()
+        .collect::<Result<Vec<Vec<u32>>, _>>()
 }
 
 #[cfg(test)]
