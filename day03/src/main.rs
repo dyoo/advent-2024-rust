@@ -12,6 +12,15 @@ enum Instruction {
     Mul { lhs: i32, rhs: i32 },
 }
 
+impl Instruction {
+    fn is_mul(&self) -> bool {
+        match self {
+            Instruction::Mul { .. } => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 struct State {
     enabled: bool,
@@ -106,16 +115,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     {
         let mut state = State::new();
-        for instruction in &instructions {
+        for instruction in instructions.iter().filter(|&x| Instruction::is_mul(x)) {
             state.eval(instruction);
-            state.enabled = true;
         }
         println!("Part 1: {:?}", state);
     }
 
     {
         let mut state = State::new();
-        for instruction in &instructions {
+        for instruction in instructions.iter() {
             state.eval(instruction)
         }
         println!("Part 2: {:?}", state);
