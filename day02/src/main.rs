@@ -34,13 +34,33 @@ fn is_almost_safe(row: &[u32]) -> bool {
     false
 }
 
-fn all_pairwise(row: &[u32], test: impl Fn(u32, u32) -> bool) -> bool {
-    for i in 0..(row.len() - 1) {
-        if !test(row[i], row[i + 1]) {
-            return false;
+struct Pairing<'a, T> {
+    vals: &'a [T],
+    index: usize,
+}
+
+impl<'a, T> Pairing<'a, T> {
+    fn new(vals: &'a [T]) -> Self {
+        Pairing { vals, index: 0 }
+    }
+}
+
+impl<'a, T> Iterator for Pairing<'a, T> {
+    type Item = (&'a T, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.vals.len() - 1 {
+            let result = (&self.vals[self.index], &self.vals[self.index + 1]);
+            self.index += 1;
+            Some(result)
+        } else {
+            None
         }
     }
-    true
+}
+
+fn all_pairwise(row: &[u32], test: impl Fn(u32, u32) -> bool) -> bool {
+    Pairing::new(row).all(|(v1, v2)| test(*v1, *v2))
 }
 
 fn parse(content: &str) -> Result<Vec<Vec<u32>>, ParseIntError> {
