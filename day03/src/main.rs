@@ -6,37 +6,74 @@ struct Parser {
 }
 
 #[derive(Debug, PartialEq)]
-struct Instruction {
-    lhs: i32,
-    rhs: i32,
+enum Instruction {
+    Do,
+    Dont,
+    Mul { lhs: i32, rhs: i32 },
 }
 
-impl Instruction {
-    fn eval(&self) -> i32 {
-        self.lhs * self.rhs
+#[derive(Debug, PartialEq)]
+struct State {
+    enabled: bool,
+    val: i32,
+}
+
+impl State {
+    fn new() -> Self {
+        State {
+            enabled: true,
+            val: 0,
+        }
+    }
+    fn eval(&mut self, inst: &Instruction) {
+        match inst {
+            Instruction::Do => {
+                self.enabled = true;
+            }
+            Instruction::Dont => {
+                self.enabled = false;
+            }
+            Instruction::Mul { lhs, rhs } => {
+                if self.enabled {
+                    self.val += lhs * rhs;
+                }
+            }
+        }
     }
 }
 
 impl Parser {
     fn new() -> Self {
-        let pattern = Regex::new(r"mul\((\d+),(\d+)\)").unwrap();
+        let pattern = Regex::new(r"mul\((\d+),(\d+)\)|do\(\)|don't\(\)").unwrap();
         Parser { pattern }
     }
 
     fn parse(&self, s: &str) -> Vec<Instruction> {
-        let items = self.pattern.captures_iter(s).map(|capture| {
-            (
-                capture.get(1).unwrap().as_str(),
-                capture.get(2).unwrap().as_str(),
-            )
-        });
-        items
-            .filter_map(|(lhs, rhs)| {
-                lhs.parse::<i32>()
-                    .and_then(|lhs| rhs.parse::<i32>().map(|rhs| Instruction { lhs, rhs }))
-                    .ok()
-            })
-            .collect::<Vec<_>>()
+        let mut result = Vec::new();
+        for captures in self.pattern.captures_iter(s) {
+            match &captures[0] {
+                "do()" => {
+                    result.push(Instruction::Do);
+                }
+                "don't()" => {
+                    result.push(Instruction::Dont);
+                }
+                _ => {
+                    let lhs = &captures[1];
+                    let rhs = &captures[2];
+
+                    let Some(lhs): Option<i32> = lhs.parse().ok() else {
+                        continue;
+                    };
+                    let Some(rhs): Option<i32> = rhs.parse().ok() else {
+                        continue;
+                    };
+                    result.push(Instruction::Mul { lhs, rhs });
+                }
+            }
+        }
+
+        result
     }
 }
 
@@ -53,10 +90,10 @@ mod tests {
         verify_that!(
             instructions,
             eq(&vec![
-                Instruction { lhs: 2, rhs: 4 },
-                Instruction { lhs: 5, rhs: 5 },
-                Instruction { lhs: 11, rhs: 8 },
-                Instruction { lhs: 8, rhs: 5 }
+                Instruction::Mul { lhs: 2, rhs: 4 },
+                Instruction::Mul { lhs: 5, rhs: 5 },
+                Instruction::Mul { lhs: 11, rhs: 8 },
+                Instruction::Mul { lhs: 8, rhs: 5 }
             ])
         )
     }
@@ -67,13 +104,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let body = std::io::read_to_string(std::io::stdin())?;
     let instructions = parser.parse(&body);
 
-    for instruction in &instructions {
-        println!("{:?}, {}", instruction, instruction.eval());
+    {
+        let mut state = State::new();
+        for instruction in &instructions {
+            state.eval(instruction);
+            state.enabled = true;
+        }
+        println!("Part 1: {:?}", state);
     }
-    println!(
-        "{}",
-        instructions.iter().map(Instruction::eval).sum::<i32>()
-    );
+
+    {
+        let mut state = State::new();
+        for instruction in &instructions {
+            state.eval(instruction)
+        }
+        println!("Part 2: {:?}", state);
+    }
 
     Ok(())
 }
