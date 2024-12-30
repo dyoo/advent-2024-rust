@@ -4,9 +4,10 @@ use std::num::ParseIntError;
 fn main() -> Result<(), Box<dyn Error>> {
     let content = std::io::read_to_string(std::io::stdin())?;
     let data: Vec<Vec<u32>> = parse(&content)?;
+    println!("Part 1: {:?}", data.iter().filter(|&v| is_safe(v)).count());
     println!(
-        "Part 1: {:?}",
-        data.into_iter().filter(|v| is_safe(v)).count()
+        "Part 2: {:?}",
+        data.iter().filter(|&v| is_almost_safe(v)).count()
     );
     Ok(())
 }
@@ -17,6 +18,20 @@ fn is_safe(row: &[u32]) -> bool {
             let diff = x.abs_diff(y);
             diff >= 1 && diff <= 3
         })
+}
+
+fn is_almost_safe(row: &[u32]) -> bool {
+    if is_safe(row) {
+        return true;
+    }
+    for i in 0..row.len() {
+        let mut modified = Vec::from(row);
+        modified.remove(i);
+        if is_safe(&modified) {
+            return true;
+        }
+    }
+    false
 }
 
 fn all_pairwise(row: &[u32], test: impl Fn(u32, u32) -> bool) -> bool {
