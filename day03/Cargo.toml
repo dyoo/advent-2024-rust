@@ -1,0 +1,10 @@
+[package]
+name = "day03"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+regex = "1.11.1"
+
+[dev-dependencies]
+googletest = "0.13.0"
