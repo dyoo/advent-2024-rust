@@ -72,16 +72,8 @@ impl<'a> Iterator for Streak<'a> {
 }
 
 fn matches_xmas(field: &Field, row: usize, col: usize, delta_row: isize, delta_col: isize) -> bool {
-    let mut streak = field.streak(row, col, delta_row, delta_col);
-    for ch_to_check in "XMAS".chars() {
-        match streak.next() {
-            Some(ch) if ch == ch_to_check => {
-                // Continue scanning
-            }
-            _ => return false,
-        }
-    }
-    true
+    let streak = field.streak(row, col, delta_row, delta_col);
+    matches_prefix("XMAS".chars(), streak)
 }
 
 fn count_xmas(field: &Field) -> u32 {
@@ -102,6 +94,40 @@ fn count_xmas(field: &Field) -> u32 {
         }
     }
     count
+}
+
+fn matches_prefix<T: PartialEq>(
+    prefix: impl IntoIterator<Item = T>,
+    seq: impl IntoIterator<Item = T>,
+) -> bool {
+    let mut lhs = prefix.into_iter();
+    let mut rhs = seq.into_iter();
+    loop {
+        match (lhs.next(), rhs.next()) {
+            (Some(v1), Some(v2)) if v1 == v2 => {}
+            (None, _) => return true,
+            _ => return false,
+        }
+    }
+}
+
+fn matches_xmas2(field: &Field, row: usize, col: usize) -> bool {
+    // Four patterns to check:
+    //
+    // M.S    S.M    S.S    M.M
+    // .A.    .A.    .A.    .A.
+    // M.S    S.M    M.M    S.S
+
+    // let mut streak = field.streak(row, col, delta_row, delta_col);
+    // for ch_to_check in "MAS".chars() {
+    //     match streak.next() {
+    //         Some(ch) if ch == ch_to_check => {
+    //             // Continue scanning
+    //         }
+    //         _ => return false,
+    //     }
+    // }
+    true
 }
 
 #[cfg(test)]
@@ -129,9 +155,9 @@ MXMXAXMASX";
     }
 
     #[test]
-    fn test_example() {
+    fn test_example() -> Result<()> {
         let field = Field::new(S);
-        assert_eq!(count_xmas(&field), 18);
+        verify_that!(count_xmas(&field), eq(18))
     }
 }
 
