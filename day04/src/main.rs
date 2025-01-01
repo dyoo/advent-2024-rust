@@ -117,17 +117,28 @@ fn matches_xmas2(field: &Field, row: usize, col: usize) -> bool {
     // M.S    S.M    S.S    M.M
     // .A.    .A.    .A.    .A.
     // M.S    S.M    M.M    S.S
+    for prefix1 in ["MAS", "SAM"] {
+        for prefix2 in ["MAS", "SAM"] {
+            if matches_prefix(prefix1.chars(), field.streak(row, col, 1, 1))
+                && matches_prefix(prefix2.chars(), field.streak(row, col + 2, 1, -1))
+            {
+                return true;
+            }
+        }
+    }
+    false
+}
 
-    // let mut streak = field.streak(row, col, delta_row, delta_col);
-    // for ch_to_check in "MAS".chars() {
-    //     match streak.next() {
-    //         Some(ch) if ch == ch_to_check => {
-    //             // Continue scanning
-    //         }
-    //         _ => return false,
-    //     }
-    // }
-    true
+fn count_xmas2(field: &Field) -> u32 {
+    let mut result = 0;
+    for row in 0..field.row_len() {
+        for col in 0..field.col_len() {
+            if matches_xmas2(field, row, col) {
+                result += 1;
+            }
+        }
+    }
+    result
 }
 
 #[cfg(test)]
@@ -159,11 +170,18 @@ MXMXAXMASX";
         let field = Field::new(S);
         verify_that!(count_xmas(&field), eq(18))
     }
+
+    #[test]
+    fn test_matches_xmas2() -> Result<()> {
+        let field = Field::new(S);
+        verify_that!(count_xmas2(&field), eq(9))
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let field = Field::new(std::io::read_to_string(std::io::stdin())?);
 
     println!("Part 1: {}", count_xmas(&field));
+    println!("Part 2: {}", count_xmas2(&field));
     Ok(())
 }
