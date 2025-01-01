@@ -26,6 +26,7 @@ impl Field {
             col: initial_col,
             delta_row,
             delta_col,
+            exhausted: false,
         }
     }
 
@@ -43,18 +44,27 @@ struct Streak<'a> {
     col: usize,
     delta_row: isize,
     delta_col: isize,
+    exhausted: bool,
 }
 
 impl<'a> Iterator for Streak<'a> {
     type Item = char;
     fn next(&mut self) -> Option<Self::Item> {
+        if self.exhausted {
+            return None;
+        }
+
         let row = self.field.body.get(self.row)?;
         let result = row.get(self.col)?;
         if let Some(next_row) = self.row.checked_add_signed(self.delta_row) {
             self.row = next_row;
+        } else {
+            self.exhausted = true;
         }
         if let Some(next_col) = self.col.checked_add_signed(self.delta_col) {
             self.col = next_col;
+        } else {
+            self.exhausted = true;
         }
 
         Some(*result)
@@ -85,7 +95,6 @@ fn count_xmas(field: &Field) -> u32 {
                     }
 
                     if matches_xmas(field, row, col, i, j) {
-                        println!("row={row}, col={col}, i={i}, j={j}");
                         count += 1;
                     }
                 }
@@ -115,7 +124,7 @@ MXMXAXMASX";
     #[gtest]
     fn test_streak() -> Result<()> {
         let field = Field::new(S);
-        let first_four: Vec<char> = field.streak(0, 5, -1, 1).take(4).collect();
+        let first_four: Vec<char> = field.streak(0, 5, 1, -1).take(4).collect();
         verify_that!(first_four, eq(&vec!['X', 'X', 'S', 'A']))
     }
 
