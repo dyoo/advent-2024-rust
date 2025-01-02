@@ -53,20 +53,20 @@ fn parse(s: impl AsRef<str>) -> Result<Problem, Box<dyn Error>> {
 }
 
 fn filter_correct_orderings(p: &Problem) -> Vec<&Vec<u32>> {
-    // Record the child->parent dependencies for quicker lookup.
-    let mut rules: HashMap<u32, HashSet<u32>> = HashMap::new();
-    {
-        let mut seen: HashSet<u32> = p.numbers.iter().flat_map(|n| n.iter()).copied().collect();
-        for (parent, child) in p.orderings.iter() {
-            if seen.contains(&parent) && seen.contains(&child) {
-                rules.entry(*child).or_default().insert(*parent);
-            }
-        }
-    }
-
     p.numbers
         .iter()
         .filter(|numbers| {
+            // Record the child->parent dependencies for quicker lookup.
+            let mut rules: HashMap<u32, HashSet<u32>> = HashMap::new();
+            {
+                let seen_in_numbers: HashSet<u32> = numbers.iter().copied().collect();
+                for (parent, child) in p.orderings.iter() {
+                    if seen_in_numbers.contains(&parent) && seen_in_numbers.contains(&child) {
+                        rules.entry(*child).or_default().insert(*parent);
+                    }
+                }
+            }
+
             let mut seen: HashSet<u32> = HashSet::new();
 
             for &n in numbers.iter() {
@@ -74,7 +74,7 @@ fn filter_correct_orderings(p: &Problem) -> Vec<&Vec<u32>> {
                     .entry(n)
                     .or_default()
                     .iter()
-                    .any(|p| !seen.contains(p))
+                    .any(|parent| !seen.contains(parent))
                 {
                     return false;
                 }
@@ -139,6 +139,19 @@ mod tests {
                 orderings: vec![(45, 53), (97, 13)],
                 numbers: vec![vec![75, 47, 61], vec![97, 61, 53],]
             }))
+        )
+    }
+
+    #[gtest]
+    fn test_filtering() -> Result<()> {
+        let problem = parse(TEST_DATA).unwrap();
+        verify_that!(
+            filter_correct_orderings(&problem),
+            container_eq(vec![
+                &vec![75, 47, 61, 53, 29],
+                &vec![97, 61, 53, 29, 13],
+                &vec![75, 29, 13],
+            ])
         )
     }
 }
