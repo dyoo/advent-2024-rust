@@ -77,7 +77,6 @@ fn filter_correct_orderings(p: &Problem) -> Vec<&Vec<u32>> {
                     .iter()
                     .any(|parent| !seen.contains(parent))
                 {
-                    println!("Rejecting {:?}, rules: {:?}", numbers, rules);
                     return false;
                 }
 
