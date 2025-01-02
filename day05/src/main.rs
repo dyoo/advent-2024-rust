@@ -53,7 +53,7 @@ fn parse(s: impl AsRef<str>) -> Result<Problem, Box<dyn Error>> {
     Ok(Problem { orderings, numbers })
 }
 
-fn filter_correct_orderings(p: &Problem) -> Vec<&Vec<u32>> {
+fn filter_correct_numbers(p: &Problem) -> Vec<&Vec<u32>> {
     p.numbers
         .iter()
         .filter(|numbers| {
@@ -151,6 +151,34 @@ where
     }
 }
 
+fn fix_broken_numbers(problem: &Problem) -> Vec<Vec<u32>> {
+    let correct_numbers: HashSet<&Vec<u32>> = filter_correct_numbers(problem).into_iter().collect();
+    let incorrect_numbers = problem
+        .numbers
+        .iter()
+        .filter(|&ordering| !correct_numbers.contains(ordering));
+
+    incorrect_numbers
+        .map(|numbers| {
+            let seen_in_numbers: HashSet<u32> = numbers.iter().copied().collect();
+            let applicable_orderings: Vec<(u32, u32)> = problem
+                .orderings
+                .iter()
+                .filter(|(parent, child)| {
+                    seen_in_numbers.contains(parent) && seen_in_numbers.contains(child)
+                })
+                .map(|&(parent, child)| (parent, child))
+                .collect();
+
+            let sorted: Vec<u32> = TopologicalSort::new(applicable_orderings).collect();
+            if sorted.len() != numbers.len() {
+                println!("PARTIAL!!! {:?}", numbers);
+            }
+            sorted
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -210,7 +238,7 @@ mod tests {
     fn test_filtering() -> Result<()> {
         let problem = parse(TEST_DATA).unwrap();
         verify_that!(
-            filter_correct_orderings(&problem),
+            filter_correct_numbers(&problem),
             container_eq(vec![
                 &vec![75, 47, 61, 53, 29],
                 &vec![97, 61, 53, 29, 13],
@@ -253,6 +281,20 @@ mod tests {
         verify_that!(topsort.next(), none())?;
         Ok(())
     }
+
+    #[gtest]
+    fn test_fix_broken_numbers() -> Result<()> {
+        let problem = parse(TEST_DATA).unwrap();
+        verify_that!(
+            fix_broken_numbers(&problem),
+            container_eq(vec![
+                vec![97, 75, 47, 61, 53],
+                vec![61, 29, 13],
+                vec![97, 75, 47, 29, 13],
+            ])
+        )?;
+        Ok(())
+    }
 }
 
 fn middle(v: &[u32]) -> u32 {
@@ -260,14 +302,22 @@ fn middle(v: &[u32]) -> u32 {
 }
 
 fn part1(p: &Problem) -> u32 {
-    filter_correct_orderings(p)
+    filter_correct_numbers(p)
         .into_iter()
-        .map(|ordering| middle(ordering))
+        .map(|numbers| middle(numbers))
+        .sum::<u32>()
+}
+
+fn part2(p: &Problem) -> u32 {
+    fix_broken_numbers(p)
+        .into_iter()
+        .map(|numbers| middle(&numbers))
         .sum::<u32>()
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let problem = parse(std::io::read_to_string(std::io::stdin())?)?;
     println!("Part 1: {}", part1(&problem));
+    println!("Part 2: {}", part2(&problem));
     Ok(())
 }
