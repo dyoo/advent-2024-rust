@@ -77,6 +77,7 @@ fn filter_correct_orderings(p: &Problem) -> Vec<&Vec<u32>> {
                     .iter()
                     .any(|parent| !seen.contains(parent))
                 {
+                    println!("Rejecting {:?}, rules: {:?}", numbers, rules);
                     return false;
                 }
 
@@ -225,6 +226,31 @@ mod tests {
         verify_that!(topsort.next(), some(eq(1)))?;
         verify_that!(topsort.next(), some(eq(2)))?;
         verify_that!(topsort.next(), some(eq(3)))?;
+        verify_that!(topsort.next(), none())?;
+        Ok(())
+    }
+
+    #[gtest]
+    fn test_topological2() -> Result<()> {
+        // This tests the last example given in part 2's description,
+        // since it's the most sophisticated.
+        let mut topsort = TopologicalSort::new([
+            (29, 13),
+            (47, 13),
+            (75, 13),
+            (97, 13),
+            (75, 47),
+            (97, 47),
+            (97, 75),
+            (47, 29),
+            (75, 29),
+            (97, 29),
+        ]);
+        verify_that!(topsort.next(), some(eq(97)))?;
+        verify_that!(topsort.next(), some(eq(75)))?;
+        verify_that!(topsort.next(), some(eq(47)))?;
+        verify_that!(topsort.next(), some(eq(29)))?;
+        verify_that!(topsort.next(), some(eq(13)))?;
         verify_that!(topsort.next(), none())?;
         Ok(())
     }
