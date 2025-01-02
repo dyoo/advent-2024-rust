@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use std::hash::Hash;
 
 #[derive(Debug, PartialEq)]
 struct Problem {
@@ -87,6 +88,69 @@ fn filter_correct_orderings(p: &Problem) -> Vec<&Vec<u32>> {
         .collect()
 }
 
+struct TopologicalSort<T> {
+    available: Vec<T>,
+    pending: HashMap<T, Vec<T>>,
+    counts: HashMap<T, usize>,
+}
+
+impl<T> TopologicalSort<T>
+where
+    T: Eq + Hash + Copy,
+{
+    fn new(deps: impl IntoIterator<Item = (T, T)>) -> Self {
+        let mut pending: HashMap<T, Vec<T>> = HashMap::new();
+        let mut counts: HashMap<T, usize> = HashMap::new();
+
+        let mut seen = HashSet::new();
+        for (parent, child) in deps {
+            seen.insert(parent);
+            seen.insert(child);
+
+            pending.entry(parent).or_default().push(child);
+            *counts.entry(child).or_insert(0) += 1;
+        }
+        for child in counts.keys() {
+            seen.remove(child);
+        }
+        let available: Vec<T> = seen.into_iter().collect();
+
+        Self {
+            available,
+            pending,
+            counts,
+        }
+    }
+}
+
+impl<T> Iterator for TopologicalSort<T>
+where
+    T: Eq + Hash + Copy,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        let result = self.available.pop();
+
+        if let Some(parent) = result {
+            let children = self
+                .pending
+                .remove(&parent)
+                .into_iter()
+                .flat_map(|children| children);
+            for child in children {
+                let child_count = self.counts.entry(child).or_insert(1);
+                *child_count = child_count.saturating_sub(1);
+                if *child_count == 0 {
+                    self.available.push(child);
+                }
+            }
+        }
+
+        result
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -153,6 +217,16 @@ mod tests {
                 &vec![75, 29, 13],
             ])
         )
+    }
+
+    #[gtest]
+    fn test_topological() -> Result<()> {
+        let mut topsort = TopologicalSort::new([(2, 3), (1, 2)]);
+        verify_that!(topsort.next(), some(eq(1)))?;
+        verify_that!(topsort.next(), some(eq(2)))?;
+        verify_that!(topsort.next(), some(eq(3)))?;
+        verify_that!(topsort.next(), none())?;
+        Ok(())
     }
 }
 
