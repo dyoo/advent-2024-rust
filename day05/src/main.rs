@@ -3,15 +3,9 @@ use std::error::Error;
 
 #[derive(Debug, PartialEq)]
 struct Problem {
-    orderings: Vec<PageOrdering>,
-    numbers: Vec<PageNumbers>,
+    orderings: Vec<(u32, u32)>,
+    numbers: Vec<Vec<u32>>,
 }
-
-#[derive(Debug, PartialEq)]
-struct PageOrdering(u32, u32);
-
-#[derive(Debug, PartialEq)]
-struct PageNumbers(Vec<u32>);
 
 fn parse(s: impl AsRef<str>) -> Result<Problem, Box<dyn Error>> {
     let mut sections = s.as_ref().split("\n\n");
@@ -38,7 +32,7 @@ fn parse(s: impl AsRef<str>) -> Result<Problem, Box<dyn Error>> {
                                     "rhs missing from {:?}",
                                     line
                                 )))
-                                .map(|&n2| PageOrdering(n1, n2))
+                                .map(|&n2| (n1, n2))
                         })
                 })
         })
@@ -53,18 +47,17 @@ fn parse(s: impl AsRef<str>) -> Result<Problem, Box<dyn Error>> {
                 .map(str::parse::<u32>)
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|err| Box::<dyn Error>::from(err))
-                .map(|numbers| PageNumbers(numbers))
         })
         .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
     Ok(Problem { orderings, numbers })
 }
 
-fn filter_correct_orderings(p: &Problem) -> Vec<&PageNumbers> {
+fn filter_correct_orderings(p: &Problem) -> Vec<&Vec<u32>> {
     // Record the child->parent dependencies for quicker lookup.
     let mut rules: HashMap<u32, HashSet<u32>> = HashMap::new();
     {
-        let mut seen: HashSet<u32> = p.numbers.iter().flat_map(|n| n.0.iter()).copied().collect();
-        for PageOrdering(parent, child) in p.orderings.iter() {
+        let mut seen: HashSet<u32> = p.numbers.iter().flat_map(|n| n.iter()).copied().collect();
+        for (parent, child) in p.orderings.iter() {
             if seen.contains(&parent) && seen.contains(&child) {
                 rules.entry(*child).or_default().insert(*parent);
             }
@@ -76,7 +69,7 @@ fn filter_correct_orderings(p: &Problem) -> Vec<&PageNumbers> {
         .filter(|numbers| {
             let mut seen: HashSet<u32> = HashSet::new();
 
-            for &n in numbers.0.iter() {
+            for &n in numbers.iter() {
                 if rules
                     .entry(n)
                     .or_default()
@@ -143,11 +136,8 @@ mod tests {
         verify_that!(
             problem,
             ok(eq(&Problem {
-                orderings: vec![PageOrdering(45, 53), PageOrdering(97, 13)],
-                numbers: vec![
-                    PageNumbers(vec![75, 47, 61],),
-                    PageNumbers(vec![97, 61, 53])
-                ]
+                orderings: vec![(45, 53), (97, 13)],
+                numbers: vec![vec![75, 47, 61], vec![97, 61, 53],]
             }))
         )
     }
