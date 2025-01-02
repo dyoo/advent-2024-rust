@@ -1,3 +1,4 @@
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 
 #[derive(Debug, PartialEq)]
@@ -55,9 +56,42 @@ fn parse(s: impl AsRef<str>) -> Result<Problem, Box<dyn Error>> {
                 .map(|numbers| PageNumbers(numbers))
         })
         .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
-
-    dbg!(sections.next());
     Ok(Problem { orderings, numbers })
+}
+
+fn filter_correct_orderings(p: &Problem) -> Vec<&PageNumbers> {
+    // Record the child->parent dependencies for quicker lookup.
+    let mut rules: HashMap<u32, HashSet<u32>> = HashMap::new();
+    {
+        let mut seen: HashSet<u32> = p.numbers.iter().flat_map(|n| n.0.iter()).copied().collect();
+        for PageOrdering(parent, child) in p.orderings.iter() {
+            if seen.contains(&parent) && seen.contains(&child) {
+                rules.entry(*child).or_default().insert(*parent);
+            }
+        }
+    }
+
+    p.numbers
+        .iter()
+        .filter(|numbers| {
+            let mut seen: HashSet<u32> = HashSet::new();
+
+            for &n in numbers.0.iter() {
+                if rules
+                    .entry(n)
+                    .or_default()
+                    .iter()
+                    .any(|p| !seen.contains(p))
+                {
+                    return false;
+                }
+
+                seen.insert(n);
+            }
+
+            true
+        })
+        .collect()
 }
 
 #[cfg(test)]
