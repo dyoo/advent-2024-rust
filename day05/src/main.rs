@@ -156,6 +156,19 @@ mod tests {
     }
 }
 
-fn main() {
-    println!("Hello, world!");
+fn middle(v: &[u32]) -> u32 {
+    v[v.len() / 2]
+}
+
+fn part1(p: &Problem) -> u32 {
+    filter_correct_orderings(p)
+        .into_iter()
+        .map(|ordering| middle(ordering))
+        .sum::<u32>()
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let problem = parse(std::io::read_to_string(std::io::stdin())?)?;
+    println!("Part 1: {}", part1(&problem));
+    Ok(())
 }
