@@ -64,7 +64,7 @@ impl Direction {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 struct World {
     player: Player,
     blocks: Vec<Pos>,
@@ -117,6 +117,18 @@ impl World {
 
     fn steps(&mut self) -> Stepper {
         Stepper { world: self }
+    }
+
+    fn is_infinite_looping(&self) -> bool {
+        let mut speculative_world = self.clone();
+        let mut player_states: HashSet<Player> = HashSet::new();
+        for step in speculative_world.steps() {
+            if player_states.contains(&step) {
+                return true;
+            }
+            player_states.insert(step);
+        }
+        false
     }
 }
 
@@ -209,17 +221,59 @@ mod tests {
     fn test_distinct_pathing() -> Result<()> {
         let mut world = World::new(DATA);
         let steps = world.steps();
-        let posn: HashSet<_> = steps.collect();
+        let posn: HashSet<_> = steps.map(|player| player.pos).collect();
         verify_that!(posn.len(), eq(41))
     }
+
+    #[gtest]
+    fn test_infinite_looping_negative() -> Result<()> {
+        let world = World::new(DATA);
+        verify_that!(world.is_infinite_looping(), is_false())
+    }
+
+    #[gtest]
+    fn test_infinite_looping_positive() -> Result<()> {
+        let mut world = World::new(DATA);
+        world.blocks.push(Pos(3, 6));
+        verify_that!(world.is_infinite_looping(), is_true())
+    }
+
+    #[gtest]
+    fn test_part2() -> Result<()> {
+        let world = World::new(DATA);
+        verify_that!(part_2(&world), eq(6))
+    }
+}
+
+fn part_1(world: &World) -> usize {
+    let mut world = world.clone();
+    let steps = world.steps();
+    let posn: HashSet<_> = steps.collect();
+    posn.len()
+}
+
+fn part_2(world: &World) -> usize {
+    let mut world = world.clone();
+    let mut steps = world.steps();
+    let _ = steps.next();
+    // Ignoring the first, see if placing a barrier causes an infinite loop.
+    let states_to_check: HashSet<Pos> = steps.map(|player| player.pos).collect();
+
+    let mut count = 0;
+    for pos in states_to_check {
+        world.blocks.push(pos);
+        if world.is_infinite_looping() {
+            count += 1;
+        }
+        world.blocks.pop();
+    }
+    count
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = std::io::read_to_string(std::io::stdin())?;
-    let mut world = World::new(input);
-    let steps = world.steps();
-    let posn: HashSet<_> = steps.collect();
-    println!("Part 1: {}", posn.len());
+    let world = World::new(input);
+    println!("Part 1: {}", part_1(&world));
 
     Ok(())
 }
