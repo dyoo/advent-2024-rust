@@ -185,11 +185,18 @@ impl<'a> Stepper<'a> {
 
     fn is_infinite_looping(&self) -> bool {
         let mut player_states: HashSet<Player> = HashSet::new();
+        let mut last_pos: Option<Pos> = None;
         for step in self.clone() {
-            if player_states.contains(&step) {
-                return true;
+            match last_pos {
+                Some(pos) if pos == step.pos => {
+                    if player_states.contains(&step) {
+                        return true;
+                    }
+                    player_states.insert(step.clone());
+                }
+                _ => {}
             }
-            player_states.insert(step);
+            last_pos = Some(step.pos);
         }
         false
     }
