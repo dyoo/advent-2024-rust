@@ -149,12 +149,14 @@ impl<'a> Iterator for Stepper<'a> {
             return None;
         }
 
-        let next_pos = self.player.peek_step();
-
-        // If next_pos hits a block, instead turn and try again.
-        if self.world.blocks.contains(&next_pos) {
-            self.player.turn();
-            return self.next();
+        loop {
+            let next_pos = self.player.peek_step();
+            // If next_pos hits a block, instead turn and try again.
+            if self.world.blocks.contains(&next_pos) {
+                self.player.turn();
+            } else {
+                break;
+            }
         }
 
         // Otherwise, move the player.
