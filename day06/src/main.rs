@@ -253,15 +253,19 @@ fn part_1(world: &World) -> usize {
 }
 
 fn part_2(world: &World) -> usize {
-    let mut world = world.clone();
-    let mut steps = world.steps();
-    let _ = steps.next();
-    // Ignoring the first, see if placing a barrier causes an infinite loop.
-    let states_to_check: HashSet<Pos> = steps.map(|player| player.pos).collect();
+    let states_to_check: HashSet<Pos> = {
+        let mut world = world.clone();
+        let mut steps = world.steps();
+        let _ = steps.next();
+        // Ignoring the first, see if placing a barrier causes an infinite loop.
+        steps.map(|player| player.pos).collect()
+    };
 
+    let mut world = world.clone();
     let mut count = 0;
     for pos in states_to_check {
         world.blocks.push(pos);
+
         if world.is_infinite_looping() {
             count += 1;
         }
@@ -274,6 +278,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = std::io::read_to_string(std::io::stdin())?;
     let world = World::new(input);
     println!("Part 1: {}", part_1(&world));
+    println!("Part 2: {}", part_2(&world));
 
     Ok(())
 }
