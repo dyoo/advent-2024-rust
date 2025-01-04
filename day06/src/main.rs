@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
-struct Pos(u8, u8);
+struct Pos(u32, u32);
 
 impl std::ops::Add<Direction> for Pos {
     type Output = Option<Pos>;
@@ -23,7 +23,8 @@ struct Player {
 }
 
 impl Player {
-    fn peek_step(&self, width: u8, height: u8) -> Option<Pos> {
+    /// Tentatively walk forward, within bounds.  If we go out of bounds, None.
+    fn peek_step(&self, width: u32, height: u32) -> Option<Pos> {
         (self.pos + self.dir).filter(|pos| pos.0 < width && pos.1 < height)
     }
 
@@ -62,13 +63,13 @@ impl Direction {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct Blocks {
+struct FieldMap {
     width: usize,
     height: usize,
     data: Vec<bool>,
 }
 
-impl Blocks {
+impl FieldMap {
     fn new(width: usize, height: usize) -> Self {
         Self {
             width,
@@ -96,9 +97,9 @@ impl Blocks {
 #[derive(Debug, PartialEq, Clone)]
 struct World {
     player: Player,
-    blocks: Blocks,
-    width: u8,
-    height: u8,
+    field_map: FieldMap,
+    width: u32,
+    height: u32,
 }
 
 impl World {
@@ -134,14 +135,14 @@ impl World {
             max_width = std::cmp::max(max_width, width);
         }
 
-        let mut blocks = Blocks::new(max_width as usize, height as usize);
+        let mut field_map = FieldMap::new(max_width as usize, height as usize);
         for pos in positions {
-            blocks.insert(&pos);
+            field_map.insert(&pos);
         }
 
         World {
             player,
-            blocks,
+            field_map,
             width: max_width,
             height,
         }
@@ -149,7 +150,7 @@ impl World {
 
     fn steps(&self) -> Stepper<'_> {
         Stepper {
-            blocks: &self.blocks,
+            field_map: &self.field_map,
             player: self.player.clone(),
             exhausted: false,
             width: self.width,
@@ -160,11 +161,11 @@ impl World {
 
 #[derive(Clone)]
 struct Stepper<'a> {
-    blocks: &'a Blocks,
+    field_map: &'a FieldMap,
     player: Player,
     exhausted: bool,
-    width: u8,
-    height: u8,
+    width: u32,
+    height: u32,
 }
 
 impl<'a> Stepper<'a> {
@@ -210,7 +211,7 @@ impl<'a> Iterator for Stepper<'a> {
         };
 
         // If next_pos hits a block, instead turn.
-        if self.blocks.contains(&next_pos) {
+        if self.field_map.contains(&next_pos) {
             self.player.turn();
             return result;
         }
@@ -241,7 +242,7 @@ mod tests {
     #[gtest]
     fn test_parsing() -> Result<()> {
         let world = World::new(DATA);
-        let mut blocks = Blocks::new(10, 10);
+        let mut field_map = FieldMap::new(10, 10);
         for pos in [
             Pos(4, 0),
             Pos(9, 1),
@@ -252,7 +253,7 @@ mod tests {
             Pos(0, 8),
             Pos(6, 9),
         ] {
-            blocks.insert(&pos);
+            field_map.insert(&pos);
         }
         verify_that!(
             world,
@@ -263,7 +264,7 @@ mod tests {
                     pos: Pos(4, 6),
                     dir: Direction::Up
                 },
-                blocks,
+                field_map,
             })
         )
     }
@@ -301,7 +302,7 @@ mod tests {
     #[gtest]
     fn test_infinite_looping_positive() -> Result<()> {
         let mut world = World::new(DATA);
-        world.blocks.insert(&Pos(3, 6));
+        world.field_map.insert(&Pos(3, 6));
         verify_that!(world.steps().is_infinite_looping(), is_true())
     }
 
@@ -324,24 +325,24 @@ fn part_2(world: &World) -> usize {
     let _ = steps_ahead.next();
 
     let mut count = 0;
-    let mut blocks = world.blocks.clone();
+    let mut field_map = world.field_map.clone();
 
-    let mut visited = HashSet::new();
+    let mut visited = FieldMap::new(world.width as usize, world.height as usize);
 
     for step_ahead in steps_ahead {
         if !visited.contains(&step_ahead.pos) {
-            blocks.insert(&step_ahead.pos);
+            field_map.insert(&step_ahead.pos);
 
             let speculative_steps = Stepper {
-                blocks: &blocks,
+                field_map: &field_map,
                 ..steps.clone()
             };
             if speculative_steps.is_infinite_looping() {
                 count += 1;
             }
 
-            blocks.remove(&step_ahead.pos);
-            visited.insert(step_ahead.pos);
+            field_map.remove(&step_ahead.pos);
+            visited.insert(&step_ahead.pos);
         }
 
         let _ = steps.next();
