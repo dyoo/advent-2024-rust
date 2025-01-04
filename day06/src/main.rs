@@ -155,7 +155,7 @@ impl World {
         Stepper {
             blocks: &self.blocks,
             player: self.player.clone(),
-            negative_pos: false,
+            exhausted: false,
             width: self.width,
             height: self.height,
         }
@@ -166,7 +166,7 @@ impl World {
 struct Stepper<'a> {
     blocks: &'a Blocks,
     player: Player,
-    negative_pos: bool,
+    exhausted: bool,
     width: u8,
     height: u8,
 }
@@ -177,7 +177,7 @@ impl<'a> Stepper<'a> {
     }
 
     fn peek(&mut self) -> Option<Player> {
-        if self.negative_pos || self.out_of_bounds(&self.player.pos) {
+        if self.exhausted || self.out_of_bounds(&self.player.pos) {
             return None;
         }
         Some(self.player.clone())
@@ -213,12 +213,12 @@ impl<'a> Iterator for Stepper<'a> {
 
         let Some(next_pos) = self.player.peek_step() else {
             // Out of bounds.  Mark this.
-            self.negative_pos = true;
+            self.exhausted = true;
             return result;
         };
         // We might also go out of bounds.
         if self.out_of_bounds(&next_pos) {
-            self.negative_pos = true;
+            self.exhausted = true;
             return result;
         }
 
