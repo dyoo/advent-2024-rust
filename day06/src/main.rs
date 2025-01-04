@@ -115,14 +115,16 @@ impl World {
         pos.0 < 0 || pos.0 >= self.width || pos.1 < 0 || pos.1 >= self.height
     }
 
-    fn steps(&mut self) -> Stepper {
-        Stepper { world: self }
+    fn steps(&self) -> Stepper {
+        Stepper {
+            world: self,
+            player: self.player.clone(),
+        }
     }
 
     fn is_infinite_looping(&self) -> bool {
-        let mut speculative_world = self.clone();
         let mut player_states: HashSet<Player> = HashSet::new();
-        for step in speculative_world.steps() {
+        for step in self.steps() {
             if player_states.contains(&step) {
                 return true;
             }
@@ -133,28 +135,29 @@ impl World {
 }
 
 struct Stepper<'a> {
-    world: &'a mut World,
+    world: &'a World,
+    player: Player,
 }
 
 impl<'a> Iterator for Stepper<'a> {
     type Item = Player;
 
     fn next(&mut self) -> Option<Player> {
-        if self.world.out_of_bounds(&self.world.player.pos) {
+        if self.world.out_of_bounds(&self.player.pos) {
             return None;
         }
 
-        let result = self.world.player.clone();
-        let next_pos = self.world.player.peek_step();
+        let result = self.player.clone();
+        let next_pos = self.player.peek_step();
 
         // If next_pos hits a block, instead turn and try again.
         if self.world.blocks.contains(&next_pos) {
-            self.world.player.turn();
+            self.player.turn();
             return self.next();
         }
 
         // Otherwise, move the player.
-        self.world.player.step();
+        self.player.step();
         Some(result)
     }
 }
@@ -204,7 +207,7 @@ mod tests {
 
     #[gtest]
     fn test_stepping() -> Result<()> {
-        let mut world = World::new(DATA);
+        let world = World::new(DATA);
         let mut steps = world.steps();
         verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 6))))?;
         verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 5))))?;
@@ -219,7 +222,7 @@ mod tests {
 
     #[gtest]
     fn test_distinct_pathing() -> Result<()> {
-        let mut world = World::new(DATA);
+        let world = World::new(DATA);
         let steps = world.steps();
         let posn: HashSet<_> = steps.map(|player| player.pos).collect();
         verify_that!(posn.len(), eq(41))
@@ -246,7 +249,6 @@ mod tests {
 }
 
 fn part_1(world: &World) -> usize {
-    let mut world = world.clone();
     let steps = world.steps();
     let posn: HashSet<_> = steps.collect();
     posn.len()
@@ -254,7 +256,6 @@ fn part_1(world: &World) -> usize {
 
 fn part_2(world: &World) -> usize {
     let states_to_check: HashSet<Pos> = {
-        let mut world = world.clone();
         let mut steps = world.steps();
         let _ = steps.next();
         // Ignoring the first, see if placing a barrier causes an infinite loop.
