@@ -66,9 +66,41 @@ impl Direction {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+struct Blocks {
+    width: usize,
+    height: usize,
+    data: Vec<bool>,
+}
+
+impl Blocks {
+    fn new(width: usize, height: usize) -> Self {
+        Self {
+            width,
+            height,
+            data: vec![false; width * height],
+        }
+    }
+
+    fn insert(&mut self, p: &Pos) {
+        let index = self.width * p.1 as usize + p.0 as usize;
+        self.data[index] = true;
+    }
+
+    fn remove(&mut self, p: &Pos) {
+        let index = self.width * p.1 as usize + p.0 as usize;
+        self.data[index] = false;
+    }
+
+    fn contains(&self, p: &Pos) -> bool {
+        let index = self.width * p.1 as usize + p.0 as usize;
+        self.data[index]
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 struct World {
     player: Player,
-    blocks: HashSet<Pos>,
+    blocks: Blocks,
     width: u8,
     height: u8,
 }
@@ -79,7 +111,7 @@ impl World {
             dir: Direction::Up,
             pos: Pos(0, 0),
         };
-        let mut blocks: HashSet<Pos> = HashSet::new();
+        let mut positions = Vec::new();
 
         let (mut max_width, mut height) = (0, 0);
         for line in s.as_ref().lines() {
@@ -87,7 +119,7 @@ impl World {
             for ch in line.chars() {
                 match ch {
                     '#' => {
-                        blocks.insert(Pos(width, height));
+                        positions.push(Pos(width, height));
                     }
                     '^' | 'V' | '<' | '>' => {
                         player = Player {
@@ -104,6 +136,11 @@ impl World {
             }
             height += 1;
             max_width = std::cmp::max(max_width, width);
+        }
+
+        let mut blocks = Blocks::new(max_width as usize, height as usize);
+        for pos in positions {
+            blocks.insert(&pos);
         }
 
         World {
@@ -127,7 +164,7 @@ impl World {
 
 #[derive(Clone)]
 struct Stepper<'a> {
-    blocks: &'a HashSet<Pos>,
+    blocks: &'a Blocks,
     player: Player,
     negative_pos: bool,
     width: u8,
@@ -173,6 +210,11 @@ impl<'a> Iterator for Stepper<'a> {
                 self.negative_pos = true;
                 return result;
             };
+            // We might also go out of bounds.
+            if self.out_of_bounds(&next_pos) {
+                self.negative_pos = true;
+                return result;
+            }
 
             // If next_pos hits a block, instead turn and try again.
             if self.blocks.contains(&next_pos) {
@@ -208,6 +250,19 @@ mod tests {
     #[gtest]
     fn test_parsing() -> Result<()> {
         let world = World::new(DATA);
+        let mut blocks = Blocks::new(10, 10);
+        for pos in [
+            Pos(4, 0),
+            Pos(9, 1),
+            Pos(2, 3),
+            Pos(7, 4),
+            Pos(1, 6),
+            Pos(8, 7),
+            Pos(0, 8),
+            Pos(6, 9),
+        ] {
+            blocks.insert(&pos);
+        }
         verify_that!(
             world,
             eq(&World {
@@ -217,18 +272,7 @@ mod tests {
                     pos: Pos(4, 6),
                     dir: Direction::Up
                 },
-                blocks: vec![
-                    Pos(4, 0),
-                    Pos(9, 1),
-                    Pos(2, 3),
-                    Pos(7, 4),
-                    Pos(1, 6),
-                    Pos(8, 7),
-                    Pos(0, 8),
-                    Pos(6, 9),
-                ]
-                .into_iter()
-                .collect(),
+                blocks,
             })
         )
     }
@@ -265,7 +309,7 @@ mod tests {
     #[gtest]
     fn test_infinite_looping_positive() -> Result<()> {
         let mut world = World::new(DATA);
-        world.blocks.insert(Pos(3, 6));
+        world.blocks.insert(&Pos(3, 6));
         verify_that!(world.steps().is_infinite_looping(), is_true())
     }
 
@@ -294,7 +338,7 @@ fn part_2(world: &World) -> usize {
 
     for step_ahead in steps_ahead {
         if !visited.contains(&step_ahead.pos) {
-            blocks.insert(step_ahead.pos);
+            blocks.insert(&step_ahead.pos);
 
             let speculative_steps = Stepper {
                 blocks: &blocks,
