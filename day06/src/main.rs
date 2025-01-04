@@ -67,7 +67,7 @@ impl Direction {
 #[derive(Debug, PartialEq, Clone)]
 struct World {
     player: Player,
-    blocks: Vec<Pos>,
+    blocks: HashSet<Pos>,
     width: isize,
     height: isize,
 }
@@ -78,14 +78,16 @@ impl World {
             dir: Direction::Up,
             pos: Pos(0, 0),
         };
-        let mut blocks: Vec<Pos> = Vec::new();
+        let mut blocks: HashSet<Pos> = HashSet::new();
 
         let (mut max_width, mut height) = (0, 0);
         for line in s.as_ref().lines() {
             let mut width = 0;
             for ch in line.chars() {
                 match ch {
-                    '#' => blocks.push(Pos(width, height)),
+                    '#' => {
+                        blocks.insert(Pos(width, height));
+                    }
                     '^' | 'V' | '<' | '>' => {
                         player = Player {
                             pos: Pos(width, height),
@@ -147,7 +149,6 @@ impl<'a> Iterator for Stepper<'a> {
             return None;
         }
 
-        let result = self.player.clone();
         let next_pos = self.player.peek_step();
 
         // If next_pos hits a block, instead turn and try again.
@@ -157,6 +158,7 @@ impl<'a> Iterator for Stepper<'a> {
         }
 
         // Otherwise, move the player.
+        let result = self.player.clone();
         self.player.step();
         Some(result)
     }
@@ -200,7 +202,9 @@ mod tests {
                     Pos(8, 7),
                     Pos(0, 8),
                     Pos(6, 9),
-                ],
+                ]
+                .into_iter()
+                .collect(),
             })
         )
     }
@@ -237,7 +241,7 @@ mod tests {
     #[gtest]
     fn test_infinite_looping_positive() -> Result<()> {
         let mut world = World::new(DATA);
-        world.blocks.push(Pos(3, 6));
+        world.blocks.insert(Pos(3, 6));
         verify_that!(world.is_infinite_looping(), is_true())
     }
 
@@ -265,12 +269,12 @@ fn part_2(world: &World) -> usize {
     let mut world = world.clone();
     let mut count = 0;
     for pos in states_to_check {
-        world.blocks.push(pos);
+        world.blocks.insert(pos);
 
         if world.is_infinite_looping() {
             count += 1;
         }
-        world.blocks.pop();
+        world.blocks.remove(&pos);
     }
     count
 }
