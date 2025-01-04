@@ -15,7 +15,7 @@ impl std::ops::Add<Direction> for Pos {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
 struct Player {
     dir: Direction,
     pos: Pos,
@@ -35,7 +35,7 @@ impl Player {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 enum Direction {
     Up,
     Down,
@@ -125,14 +125,14 @@ struct Stepper<'a> {
 }
 
 impl<'a> Iterator for Stepper<'a> {
-    type Item = Pos;
+    type Item = Player;
 
-    fn next(&mut self) -> Option<Pos> {
+    fn next(&mut self) -> Option<Player> {
         if self.world.out_of_bounds(&self.world.player.pos) {
             return None;
         }
 
-        let result = self.world.player.pos;
+        let result = self.world.player.clone();
         let next_pos = self.world.player.peek_step();
 
         // If next_pos hits a block, instead turn and try again.
@@ -194,14 +194,14 @@ mod tests {
     fn test_stepping() -> Result<()> {
         let mut world = World::new(DATA);
         let mut steps = world.steps();
-        verify_that!(steps.next(), some(eq(Pos(4, 6))))?;
-        verify_that!(steps.next(), some(eq(Pos(4, 5))))?;
-        verify_that!(steps.next(), some(eq(Pos(4, 4))))?;
-        verify_that!(steps.next(), some(eq(Pos(4, 3))))?;
-        verify_that!(steps.next(), some(eq(Pos(4, 2))))?;
-        verify_that!(steps.next(), some(eq(Pos(4, 1))))?;
-        verify_that!(steps.next(), some(eq(Pos(5, 1))))?;
-        verify_that!(steps.next(), some(eq(Pos(6, 1))))?;
+        verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 6))))?;
+        verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 5))))?;
+        verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 4))))?;
+        verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 3))))?;
+        verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 2))))?;
+        verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 1))))?;
+        verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(5, 1))))?;
+        verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(6, 1))))?;
         Ok(())
     }
 
