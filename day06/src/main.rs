@@ -283,22 +283,32 @@ fn part_1(world: &World) -> usize {
 }
 
 fn part_2(world: &World) -> usize {
-    let states_to_check: HashSet<Pos> = {
-        let mut steps = world.steps();
-        let _ = steps.next();
-        // Ignoring the first, see if placing a barrier causes an infinite loop.
-        steps.map(|player| player.pos).collect()
-    };
+    let mut steps = world.steps();
+    let mut steps_ahead = steps.clone();
+    let _ = steps_ahead.next();
 
-    let mut world = world.clone();
     let mut count = 0;
-    for pos in states_to_check {
-        world.blocks.insert(pos);
+    let mut blocks = world.blocks.clone();
 
-        if world.steps().is_infinite_looping() {
-            count += 1;
+    let mut visited = HashSet::new();
+
+    for step_ahead in steps_ahead {
+        if !visited.contains(&step_ahead.pos) {
+            blocks.insert(step_ahead.pos);
+
+            let speculative_steps = Stepper {
+                blocks: &blocks,
+                ..steps.clone()
+            };
+            if speculative_steps.is_infinite_looping() {
+                count += 1;
+            }
+
+            blocks.remove(&step_ahead.pos);
+            visited.insert(step_ahead.pos);
         }
-        world.blocks.remove(&pos);
+
+        let _ = steps.next();
     }
     count
 }
