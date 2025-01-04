@@ -314,9 +314,9 @@ mod tests {
 }
 
 fn part_1(world: &World) -> usize {
-    let steps = world.steps();
-    let posn: HashSet<_> = steps.collect();
-    posn.len()
+    let steps = world.steps().map(|player| player.pos);
+    let unique_positions: HashSet<_> = steps.collect();
+    unique_positions.len()
 }
 
 fn part_2(world: &World) -> usize {
