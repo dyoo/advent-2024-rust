@@ -7,3 +7,6 @@ edition = "2021"
 
 [dev-dependencies]
 googletest = "0.13.0"
+
+[profile.release]
+debug = true

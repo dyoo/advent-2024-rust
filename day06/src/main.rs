@@ -204,27 +204,24 @@ impl<'a> Iterator for Stepper<'a> {
             return result;
         }
 
-        loop {
-            let Some(next_pos) = self.player.peek_step() else {
-                // Out of bounds.  Mark this.
-                self.negative_pos = true;
-                return result;
-            };
-            // We might also go out of bounds.
-            if self.out_of_bounds(&next_pos) {
-                self.negative_pos = true;
-                return result;
-            }
-
-            // If next_pos hits a block, instead turn and try again.
-            if self.blocks.contains(&next_pos) {
-                self.player.turn();
-            } else {
-                break;
-            }
+        let Some(next_pos) = self.player.peek_step() else {
+            // Out of bounds.  Mark this.
+            self.negative_pos = true;
+            return result;
+        };
+        // We might also go out of bounds.
+        if self.out_of_bounds(&next_pos) {
+            self.negative_pos = true;
+            return result;
         }
 
-        // Otherwise, move the player.
+        // If next_pos hits a block, instead turn.
+        if self.blocks.contains(&next_pos) {
+            self.player.turn();
+            return result;
+        }
+
+        // Otherwise, move the player forward.
         self.player.step();
         result
     }
@@ -286,6 +283,7 @@ mod tests {
         verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 4))))?;
         verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 3))))?;
         verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 2))))?;
+        verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 1))))?;
         verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(4, 1))))?;
         verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(5, 1))))?;
         verify_that!(steps.next().map(|p| p.pos), some(eq(Pos(6, 1))))?;
