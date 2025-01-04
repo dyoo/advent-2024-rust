@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq, Clone, Copy)]
+use std::collections::HashSet;
+
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 struct Pos(isize, isize);
 
 impl std::ops::Add<Direction> for Pos {
@@ -204,13 +206,20 @@ mod tests {
     }
 
     #[gtest]
-    fn test_termination() -> Result<()> {
+    fn test_distinct_pathing() -> Result<()> {
         let mut world = World::new(DATA);
-        let mut steps = world.steps();
-        verify_that!(steps.count(), eq(41))
+        let steps = world.steps();
+        let posn: HashSet<_> = steps.collect();
+        verify_that!(posn.len(), eq(41))
     }
 }
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let input = std::io::read_to_string(std::io::stdin())?;
+    let mut world = World::new(input);
+    let steps = world.steps();
+    let posn: HashSet<_> = steps.collect();
+    println!("Part 1: {}", posn.len());
+
+    Ok(())
 }
