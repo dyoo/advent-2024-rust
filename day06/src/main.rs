@@ -23,12 +23,8 @@ struct Player {
 }
 
 impl Player {
-    fn step(&mut self) {
-        self.pos = self.peek_step().unwrap();
-    }
-
-    fn peek_step(&self) -> Option<Pos> {
-        self.pos + self.dir
+    fn peek_step(&self, width: u8, height: u8) -> Option<Pos> {
+        (self.pos + self.dir).filter(|pos| pos.0 < width && pos.1 < height)
     }
 
     fn turn(&mut self) {
@@ -172,12 +168,8 @@ struct Stepper<'a> {
 }
 
 impl<'a> Stepper<'a> {
-    fn out_of_bounds(&self, pos: &Pos) -> bool {
-        pos.0 >= self.width || pos.1 >= self.height
-    }
-
     fn peek(&mut self) -> Option<Player> {
-        if self.exhausted || self.out_of_bounds(&self.player.pos) {
+        if self.exhausted {
             return None;
         }
         Some(self.player.clone())
@@ -211,16 +203,11 @@ impl<'a> Iterator for Stepper<'a> {
             return result;
         }
 
-        let Some(next_pos) = self.player.peek_step() else {
+        let Some(next_pos) = self.player.peek_step(self.width, self.height) else {
             // Out of bounds.  Mark this.
             self.exhausted = true;
             return result;
         };
-        // We might also go out of bounds.
-        if self.out_of_bounds(&next_pos) {
-            self.exhausted = true;
-            return result;
-        }
 
         // If next_pos hits a block, instead turn.
         if self.blocks.contains(&next_pos) {
@@ -229,7 +216,7 @@ impl<'a> Iterator for Stepper<'a> {
         }
 
         // Otherwise, move the player forward.
-        self.player.step();
+        self.player.pos = next_pos;
         result
     }
 }
