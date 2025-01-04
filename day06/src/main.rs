@@ -1,17 +1,18 @@
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
-struct Pos(isize, isize);
+struct Pos(u8, u8);
 
 impl std::ops::Add<Direction> for Pos {
-    type Output = Pos;
-    fn add(self, dir: Direction) -> Self {
+    type Output = Option<Pos>;
+    fn add(mut self, dir: Direction) -> Self::Output {
         match dir {
-            Direction::Up => Pos(self.0, self.1 - 1),
-            Direction::Down => Pos(self.0, self.1 + 1),
-            Direction::Left => Pos(self.0 - 1, self.1),
-            Direction::Right => Pos(self.0 + 1, self.1),
+            Direction::Up => self.1 = self.1.checked_sub(1)?,
+            Direction::Down => self.1 = self.1.checked_add(1)?,
+            Direction::Left => self.0 = self.0.checked_sub(1)?,
+            Direction::Right => self.0 = self.0.checked_add(1)?,
         }
+        Some(self)
     }
 }
 
@@ -23,10 +24,10 @@ struct Player {
 
 impl Player {
     fn step(&mut self) {
-        self.pos = self.peek_step();
+        self.pos = self.peek_step().unwrap();
     }
 
-    fn peek_step(&self) -> Pos {
+    fn peek_step(&self) -> Option<Pos> {
         self.pos + self.dir
     }
 
@@ -68,8 +69,8 @@ impl Direction {
 struct World {
     player: Player,
     blocks: HashSet<Pos>,
-    width: isize,
-    height: isize,
+    width: u8,
+    height: u8,
 }
 
 impl World {
@@ -113,20 +114,41 @@ impl World {
         }
     }
 
+    fn steps(&self) -> Stepper<'_> {
+        Stepper {
+            blocks: &self.blocks,
+            player: self.player.clone(),
+            negative_pos: false,
+            width: self.width,
+            height: self.height,
+        }
+    }
+}
+
+#[derive(Clone)]
+struct Stepper<'a> {
+    blocks: &'a HashSet<Pos>,
+    player: Player,
+    negative_pos: bool,
+    width: u8,
+    height: u8,
+}
+
+impl<'a> Stepper<'a> {
     fn out_of_bounds(&self, pos: &Pos) -> bool {
-        pos.0 < 0 || pos.0 >= self.width || pos.1 < 0 || pos.1 >= self.height
+        pos.0 >= self.width || pos.1 >= self.height
     }
 
-    fn steps(&self) -> Stepper {
-        Stepper {
-            world: self,
-            player: self.player.clone(),
+    fn peek(&mut self) -> Option<Player> {
+        if self.negative_pos || self.out_of_bounds(&self.player.pos) {
+            return None;
         }
+        Some(self.player.clone())
     }
 
     fn is_infinite_looping(&self) -> bool {
         let mut player_states: HashSet<Player> = HashSet::new();
-        for step in self.steps() {
+        for step in self.clone() {
             if player_states.contains(&step) {
                 return true;
             }
@@ -136,23 +158,24 @@ impl World {
     }
 }
 
-struct Stepper<'a> {
-    world: &'a World,
-    player: Player,
-}
-
 impl<'a> Iterator for Stepper<'a> {
     type Item = Player;
 
     fn next(&mut self) -> Option<Player> {
-        if self.world.out_of_bounds(&self.player.pos) {
-            return None;
+        let result = self.peek();
+        if result.is_none() {
+            return result;
         }
 
         loop {
-            let next_pos = self.player.peek_step();
+            let Some(next_pos) = self.player.peek_step() else {
+                // Out of bounds.  Mark this.
+                self.negative_pos = true;
+                return result;
+            };
+
             // If next_pos hits a block, instead turn and try again.
-            if self.world.blocks.contains(&next_pos) {
+            if self.blocks.contains(&next_pos) {
                 self.player.turn();
             } else {
                 break;
@@ -160,9 +183,8 @@ impl<'a> Iterator for Stepper<'a> {
         }
 
         // Otherwise, move the player.
-        let result = self.player.clone();
         self.player.step();
-        Some(result)
+        result
     }
 }
 
@@ -237,14 +259,14 @@ mod tests {
     #[gtest]
     fn test_infinite_looping_negative() -> Result<()> {
         let world = World::new(DATA);
-        verify_that!(world.is_infinite_looping(), is_false())
+        verify_that!(world.steps().is_infinite_looping(), is_false())
     }
 
     #[gtest]
     fn test_infinite_looping_positive() -> Result<()> {
         let mut world = World::new(DATA);
         world.blocks.insert(Pos(3, 6));
-        verify_that!(world.is_infinite_looping(), is_true())
+        verify_that!(world.steps().is_infinite_looping(), is_true())
     }
 
     #[gtest]
@@ -273,7 +295,7 @@ fn part_2(world: &World) -> usize {
     for pos in states_to_check {
         world.blocks.insert(pos);
 
-        if world.is_infinite_looping() {
+        if world.steps().is_infinite_looping() {
             count += 1;
         }
         world.blocks.remove(&pos);
