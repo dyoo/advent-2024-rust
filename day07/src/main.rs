@@ -1,7 +1,7 @@
 #[derive(Debug, PartialEq)]
 struct Equation {
-    test_value: u32,
-    args: Box<[u32]>,
+    test_value: u64,
+    args: Box<[u64]>,
 }
 impl Equation {
     fn is_valid(&self) -> bool {
@@ -9,7 +9,7 @@ impl Equation {
     }
 }
 
-fn is_valid(test_val: u32, args: &[u32]) -> bool {
+fn is_valid(test_val: u64, args: &[u64]) -> bool {
     if args.len() == 0 {
         return false;
     } else if args.len() == 1 {
@@ -34,10 +34,10 @@ impl std::str::FromStr for Equation {
     fn from_str(s: &str) -> Result<Self, String> {
         let mut vals = s
             .split([' ', ':'])
-            .filter_map(|v| str::parse::<u32>(v).ok());
+            .filter_map(|v| str::parse::<u64>(v).ok());
 
-        let test_value: u32 = vals.next().ok_or_else(|| "No test value".to_string())?;
-        let args: Vec<u32> = vals.collect();
+        let test_value: u64 = vals.next().ok_or_else(|| "No test value".to_string())?;
+        let args: Vec<u64> = vals.collect();
 
         Ok(Equation {
             test_value,
@@ -104,6 +104,17 @@ mod tests {
         )?;
 
         Ok(())
+    }
+
+    #[gtest]
+    fn test_part_1() -> Result<()> {
+        let mut problem = DATA
+            .lines()
+            .map(str::parse::<Equation>)
+            .collect::<std::result::Result<Vec<Equation>, _>>()
+            .unwrap();
+
+        verify_that!(part_1(&problem), eq(3749))
     }
 }
 
