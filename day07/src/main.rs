@@ -3,6 +3,31 @@ struct Equation {
     test_value: u32,
     args: Box<[u32]>,
 }
+impl Equation {
+    fn is_valid(&self) -> bool {
+        is_valid(self.test_value, self.args.as_ref())
+    }
+}
+
+fn is_valid(test_val: u32, args: &[u32]) -> bool {
+    if args.len() == 0 {
+        return false;
+    } else if args.len() == 1 {
+        return test_val == args[0];
+    }
+
+    let last = *args.last().unwrap();
+
+    if test_val >= last && is_valid(test_val - last, &args[0..args.len() - 1]) {
+        return true;
+    }
+
+    if test_val % last == 0 && is_valid(test_val / last, &args[0..args.len() - 1]) {
+        return true;
+    }
+
+    false
+}
 
 impl std::str::FromStr for Equation {
     type Err = String;
@@ -66,6 +91,28 @@ mod tests {
 
         Ok(())
     }
+
+    #[gtest]
+    fn test_is_valid() -> Result<()> {
+        verify_that!(
+            "190: 10 19".parse::<Equation>().unwrap().is_valid(),
+            is_true()
+        )?;
+        verify_that!(
+            "3267: 81 40 27".parse::<Equation>().unwrap().is_valid(),
+            is_true()
+        )?;
+
+        Ok(())
+    }
+}
+
+fn part_1(problem: &[Equation]) -> u64 {
+    problem
+        .into_iter()
+        .filter(|e| e.is_valid())
+        .map(|e| u64::from(e.test_value))
+        .sum()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -73,5 +120,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .lines()
         .map(str::parse::<Equation>)
         .collect::<Result<Vec<_>, _>>()?;
+    println!("Part 1: {}", part_1(&problem));
+
     Ok(())
 }
