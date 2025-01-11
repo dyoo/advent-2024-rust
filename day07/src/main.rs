@@ -1,3 +1,5 @@
+use rayon::prelude::*;
+
 #[derive(Debug, PartialEq)]
 struct Equation {
     test_value: u64,
@@ -195,7 +197,7 @@ fn try_unconcat(n: u64, suffix: u64) -> Option<u64> {
 
 fn part_1(problem: &[Equation]) -> u64 {
     problem
-        .into_iter()
+        .par_iter()
         .filter(|e| e.is_valid())
         .map(|e| u64::from(e.test_value))
         .sum()
@@ -203,7 +205,7 @@ fn part_1(problem: &[Equation]) -> u64 {
 
 fn part_2(problem: &[Equation]) -> u64 {
     problem
-        .into_iter()
+        .par_iter()
         .filter(|e| e.is_valid2())
         .map(|e| u64::from(e.test_value))
         .sum()
