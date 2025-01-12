@@ -60,6 +60,48 @@ impl Field {
 
         candidates.filter(|pos| self.in_bounds(pos))
     }
+
+    pub fn line_antinodes(&self) -> impl Iterator<Item = (isize, isize)> + '_ {
+        // Iterator of pairs:
+        let candidates = self.antennas.iter().flat_map(|from| {
+            self.antennas
+                .iter()
+                .filter(|to| from.label == to.label && (from.row != to.row || from.col != to.col))
+                .flat_map(|to| {
+                    LineAntinode::new((from.row, from.col), (to.row, to.col))
+                        .take_while(|pos| self.in_bounds(pos))
+                })
+        });
+
+        candidates.filter(|pos| self.in_bounds(pos))
+    }
+}
+
+struct LineAntinode {
+    pos: (isize, isize),
+    delta_row: isize,
+    delta_col: isize,
+}
+
+impl LineAntinode {
+    fn new(from: (isize, isize), to: (isize, isize)) -> Self {
+        let (delta_row, delta_col) = (to.0 - from.0, to.1 - from.1);
+        LineAntinode {
+            pos: (to.0, to.1),
+            delta_row,
+            delta_col,
+        }
+    }
+}
+
+impl Iterator for LineAntinode {
+    type Item = (isize, isize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_result = self.pos;
+        self.pos = (self.pos.0 + self.delta_row, self.pos.1 + self.delta_col);
+        Some(next_result)
+    }
 }
 
 impl Antenna {
@@ -71,6 +113,11 @@ impl Antenna {
 
 fn part_1(field: &Field) -> usize {
     let unique_locations: HashSet<_> = field.antinodes().collect();
+    unique_locations.len()
+}
+
+fn part_2(field: &Field) -> usize {
+    let unique_locations: HashSet<_> = field.line_antinodes().collect();
     unique_locations.len()
 }
 
@@ -143,11 +190,18 @@ mod tests {
         let field = Field::parse(DATA);
         verify_that!(part_1(&field), eq(14))
     }
+
+    #[gtest]
+    fn test_part2() -> Result<()> {
+        let field = Field::parse(DATA);
+        verify_that!(part_2(&field), eq(34))
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = std::io::read_to_string(std::io::stdin())?;
     let field = Field::parse(&input);
     println!("Part 1: {}", part_1(&field));
+    println!("Part 2: {}", part_2(&field));
     Ok(())
 }
