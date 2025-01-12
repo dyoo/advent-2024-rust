@@ -50,20 +50,16 @@ impl Field {
     }
 
     pub fn antinodes(&self) -> impl Iterator<Item = (isize, isize)> + '_ {
-        // Iterator of pairs:
-        let candidates = self.antennas.iter().flat_map(|from| {
+        self.antennas.iter().flat_map(|from| {
             self.antennas
                 .iter()
                 .filter(|to| from.label == to.label && (from.row != to.row || from.col != to.col))
-                .map(|to| from.antinode(to))
-        });
-
-        candidates.filter(|pos| self.in_bounds(pos))
+                .flat_map(|to| Some(from.antinode(to)).filter(|pos| self.in_bounds(pos)))
+        })
     }
 
     pub fn line_antinodes(&self) -> impl Iterator<Item = (isize, isize)> + '_ {
-        // Iterator of pairs:
-        let candidates = self.antennas.iter().flat_map(|from| {
+        self.antennas.iter().flat_map(|from| {
             self.antennas
                 .iter()
                 .filter(|to| from.label == to.label && (from.row != to.row || from.col != to.col))
@@ -71,9 +67,7 @@ impl Field {
                     LineAntinode::new((from.row, from.col), (to.row, to.col))
                         .take_while(|pos| self.in_bounds(pos))
                 })
-        });
-
-        candidates.filter(|pos| self.in_bounds(pos))
+        })
     }
 }
 
