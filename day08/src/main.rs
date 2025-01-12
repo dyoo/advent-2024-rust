@@ -1,7 +1,10 @@
+use std::collections::HashSet;
+
 #[derive(Debug, PartialEq)]
 struct Field {
-    //    data: Box<[Box<[char]>]>,
     antennas: Box<[Antenna]>,
+    rows: isize,
+    cols: isize,
 }
 
 #[derive(Debug, PartialEq)]
@@ -37,8 +40,38 @@ impl Field {
 
         Self {
             antennas: antennas.into(),
+            rows: data.len() as isize,
+            cols: data[0].len() as isize,
         }
     }
+
+    fn in_bounds(&self, pos: &(isize, isize)) -> bool {
+        0 <= pos.0 && pos.0 < self.rows && 0 <= pos.1 && pos.1 < self.cols
+    }
+
+    pub fn antinodes(&self) -> impl Iterator<Item = (isize, isize)> + '_ {
+        // Iterator of pairs:
+        let candidates = self.antennas.iter().flat_map(|from| {
+            self.antennas
+                .iter()
+                .filter(|to| from.label == to.label && (from.row != to.row || from.col != to.col))
+                .map(|to| from.antinode(to))
+        });
+
+        candidates.filter(|pos| self.in_bounds(pos))
+    }
+}
+
+impl Antenna {
+    fn antinode(&self, other: &Antenna) -> (isize, isize) {
+        let (delta_row, delta_col) = (other.row - self.row, other.col - self.col);
+        (other.row + delta_row, other.col + delta_col)
+    }
+}
+
+fn part_1(field: &Field) -> usize {
+    let unique_locations: HashSet<_> = field.antinodes().collect();
+    unique_locations.len()
 }
 
 #[cfg(test)]
@@ -104,10 +137,17 @@ mod tests {
             )
         )
     }
+
+    #[gtest]
+    fn test_part1() -> Result<()> {
+        let field = Field::parse(DATA);
+        verify_that!(part_1(&field), eq(14))
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = std::io::read_to_string(std::io::stdin())?;
-    println!("Hello, world!");
+    let field = Field::parse(&input);
+    println!("Part 1: {}", part_1(&field));
     Ok(())
 }
