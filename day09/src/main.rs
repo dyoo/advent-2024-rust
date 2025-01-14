@@ -26,36 +26,24 @@ impl DiskEntry {
     }
 }
 
+// trait Defrag {
+//     fn defrag(&mut self);
+// }
+
+// impl Defrag for Vec<DiskEntry> {
+//     fn defrag(&mut self) {
+// 	enum DiskEntryWithOffset {
+// 	    File { offset:usize, id: usize, len: usize },
+// 	    Free { offset:usize, len: usize },
+// 	}
+//     }    
+// }
+
+
+
 #[derive(Debug, PartialEq)]
 struct DiskMap(Vec<Option<usize>>);
 impl DiskMap {
-    fn parse(entries: impl IntoIterator<Item = DiskEntry>) -> Self {
-        let entries: Vec<_> = entries.into_iter().collect();
-        let capacity: usize = entries
-            .iter()
-            .map(|entry| match entry {
-                DiskEntry::File { len, .. } => len,
-                DiskEntry::Free(len) => len,
-            })
-            .sum();
-        let mut buffer: Vec<Option<usize>> = Vec::with_capacity(capacity);
-        for entry in entries {
-            match entry {
-                DiskEntry::File { len, id } => {
-                    for _ in 0..len {
-                        buffer.push(Some(id));
-                    }
-                }
-                DiskEntry::Free(len) => {
-                    for _ in 0..len {
-                        buffer.push(None);
-                    }
-                }
-            }
-        }
-        Self(buffer)
-    }
-
     fn defrag(&mut self) {
         let n = self.0.len();
         let mut i: usize = 0;
@@ -104,6 +92,37 @@ impl DiskMap {
     }
 }
 
+impl FromIterator<DiskEntry> for DiskMap {
+    fn from_iter<T>(entries: T) -> Self
+	where T: IntoIterator<Item = DiskEntry>
+    {
+        let entries: Vec<_> = entries.into_iter().collect();
+        let capacity: usize = entries
+            .iter()
+            .map(|entry| match entry {
+                DiskEntry::File { len, .. } => len,
+                DiskEntry::Free(len) => len,
+            })
+            .sum();
+        let mut buffer: Vec<Option<usize>> = Vec::with_capacity(capacity);
+        for entry in entries {
+            match entry {
+                DiskEntry::File { len, id } => {
+                    for _ in 0..len {
+                        buffer.push(Some(id));
+                    }
+                }
+                DiskEntry::Free(len) => {
+                    for _ in 0..len {
+                        buffer.push(None);
+                    }
+                }
+            }
+        }
+        Self(buffer)
+    }
+}
+
 impl std::fmt::Display for DiskMap {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         for entry in &self.0 {
@@ -145,7 +164,7 @@ mod tests {
     #[gtest]
     fn test_parse_diskmap() -> Result<()> {
         verify_that!(
-            DiskMap::parse(DiskEntry::parse("1234")),
+            DiskEntry::parse("1234").into_iter().collect::<DiskMap>(),
             eq(&DiskMap(vec![
                 Some(0),
                 None,
@@ -163,7 +182,7 @@ mod tests {
 
     #[gtest]
     fn test_defrag() -> Result<()> {
-        let mut diskmap = DiskMap::parse(DiskEntry::parse(DATA));
+        let mut diskmap: DiskMap = DiskEntry::parse(DATA).into_iter().collect();
         println!("{}", diskmap);
         diskmap.defrag();
         verify_that!(
@@ -174,16 +193,15 @@ mod tests {
 
     #[gtest]
     fn test_checksum() -> Result<()> {
-        let mut diskmap = DiskMap::parse(DiskEntry::parse(DATA));
+        let mut diskmap: DiskMap = DiskEntry::parse(DATA).into_iter().collect();
         diskmap.defrag();
         verify_that!(diskmap.checksum(), eq(1928))
     }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut diskmap = DiskMap::parse(DiskEntry::parse(
-        &std::io::read_to_string(std::io::stdin())?,
-    ));
+    let mut diskmap: DiskMap = DiskEntry::parse(
+        &std::io::read_to_string(std::io::stdin())?).into_iter().collect();
     diskmap.defrag();
 
     println!("Part 1: {}", diskmap.checksum());
