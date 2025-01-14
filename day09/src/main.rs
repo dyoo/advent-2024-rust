@@ -9,18 +9,18 @@ impl DiskEntry {
 
         let mut results = Vec::new();
         let mut id = 0;
-	loop {
-	    let Some(file) = digits.next() else {
-		break;
-	    };
+        loop {
+            let Some(file) = digits.next() else {
+                break;
+            };
             results.push(DiskEntry::File { id, len: file });
             id += 1;
 
-	    let Some(free) = digits.next() else {
-		break;
-	    };
+            let Some(free) = digits.next() else {
+                break;
+            };
             results.push(DiskEntry::Free(free));
-	}
+        }
 
         results
     }
@@ -57,58 +57,67 @@ impl DiskMap {
     }
 
     fn defrag(&mut self) {
-	let n = self.0.len();
-	let mut i: usize = 0;
-	let mut j: isize = (n - 1) as isize;
-	loop {
-	    // Scan i forward for next vacant spot
-	    while i < n {
-		if self.0[i].is_none() {
-		    break;
-		}
-		i += 1;
-	    }
-	    if i == n {
-		break
-	    }
-	    
-	    // Scan j backward for next occupied spot
-	    while j >= 0 {
-		if self.0[j as usize].is_some() {
-		    break;
-		}
-		j -= 1;		
-	    }
-	    if j < 0 {
-		break;
-	    }
-	    
-	    // Swap
-	    self.0.swap(i, j as usize);
-	}
+        let n = self.0.len();
+        let mut i: usize = 0;
+        let mut j: isize = (n - 1) as isize;
+        loop {
+            // Scan i forward for next vacant spot
+            while i < n {
+                if self.0[i].is_none() {
+                    break;
+                }
+                i += 1;
+            }
+            if i == n {
+                break;
+            }
+
+            // Scan j backward for next occupied spot
+            while j >= 0 {
+                if self.0[j as usize].is_some() {
+                    break;
+                }
+                j -= 1;
+            }
+            if j < 0 {
+                break;
+            }
+
+            // If the pointers crossed, we're done.
+            if i >= j as usize {
+                break;
+            }
+            // Swap, and try again.
+            self.0.swap(i, j as usize);
+        }
     }
 
     fn checksum(&self) -> usize {
-	self.0.iter().enumerate().map(|(i, entry)|
-				      match entry {
-					  Some(v) => i * v,
-					  None => 0,
-				      }
-
-	).sum()
+        self.0
+            .iter()
+            .enumerate()
+            .map(|(position, entry)| match entry {
+                Some(id) => position * id,
+                None => 0,
+            })
+            .sum()
     }
 }
 
 impl std::fmt::Display for DiskMap {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-	for entry in &self.0  {
-	    match entry {
-		None => { write!(formatter, ".")?;},
-		Some(v) => { write!(formatter, "{}", v)?;},
-	    }
-	}
+        for entry in &self.0 {
+            match entry {
+                None => {
+                    write!(formatter, ".")?;
+                }
+                Some(v) => {
+                    write!(formatter, "{}", v)?;
+                }
+            }
+        }
 
-	Ok(())
+        Ok(())
     }
 }
 
@@ -153,25 +162,30 @@ mod tests {
     }
 
     #[gtest]
-    fn test_defrag() -> Result<()>{
+    fn test_defrag() -> Result<()> {
         let mut diskmap = DiskMap::parse(DiskEntry::parse(DATA));
-	println!("{}", diskmap);
-	diskmap.defrag();
-	verify_that!(diskmap.to_string(),
-		     eq("0099811188827773336446555566.............."))
+        println!("{}", diskmap);
+        diskmap.defrag();
+        verify_that!(
+            diskmap.to_string(),
+            eq("0099811188827773336446555566..............")
+        )
     }
 
     #[gtest]
-    fn test_checksum() -> Result<()>{
+    fn test_checksum() -> Result<()> {
         let mut diskmap = DiskMap::parse(DiskEntry::parse(DATA));
-	diskmap.defrag();
-	verify_that!(diskmap.checksum(),
-		     eq(1928))
+        diskmap.defrag();
+        verify_that!(diskmap.checksum(), eq(1928))
     }
-
-    
 }
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut diskmap = DiskMap::parse(DiskEntry::parse(
+        &std::io::read_to_string(std::io::stdin())?,
+    ));
+    diskmap.defrag();
+
+    println!("Part 1: {}", diskmap.checksum());
+    Ok(())
 }
