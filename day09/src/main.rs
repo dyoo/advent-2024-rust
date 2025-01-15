@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 #[derive(Debug, PartialEq)]
 enum DiskEntry {
     File { id: usize, len: usize },
@@ -26,20 +28,80 @@ impl DiskEntry {
     }
 }
 
-// trait Defrag {
-//     fn defrag(&mut self);
-// }
+trait Defrag {
+    fn defrag(&mut self);
+}
 
-// impl Defrag for Vec<DiskEntry> {
-//     fn defrag(&mut self) {
-// 	enum DiskEntryWithOffset {
-// 	    File { offset:usize, id: usize, len: usize },
-// 	    Free { offset:usize, len: usize },
-// 	}
-//     }    
-// }
+impl Defrag for Vec<DiskEntry> {
+    fn defrag(&mut self) {
+        // Keep local augmented structures with offset.
+        struct File {
+            id: usize,
+            offset: usize,
+            len: usize,
+        }
+        impl From<File> for DiskEntry {
+            fn from(f: File) -> DiskEntry {
+                DiskEntry::File {
+                    id: f.id,
+                    len: f.len,
+                }
+            }
+        }
 
+        struct Free {
+            offset: usize,
+            len: usize,
+        }
+        impl From<Free> for DiskEntry {
+            fn from(f: Free) -> DiskEntry {
+                DiskEntry::Free(f.len)
+            }
+        }
 
+        let mut freelist = BTreeMap::new();
+        let mut filelist = Vec::new();
+
+        let mut offset = 0;
+        for entry in self.iter() {
+            match entry {
+                DiskEntry::File { id, len } => {
+                    filelist.push(File {
+                        id: *id,
+                        len: *len,
+                        offset,
+                    });
+                    offset += *len;
+                }
+                DiskEntry::Free(len) => {
+                    freelist.insert((*len, offset), Free { len: *len, offset });
+                    offset += *len;
+                }
+            }
+        }
+
+        for file in filelist.iter_mut().rev() {
+            // Look for available space
+            // If available, relocate, and shrink the free list.
+        }
+
+        // Finally, restructure in terms of the relocations.
+        *self = {
+            let mut items: Vec<_> = filelist
+                .into_iter()
+                .map(|f| (f.offset, DiskEntry::from(f)))
+                .chain(
+                    freelist
+                        .into_values()
+                        .into_iter()
+                        .map(|free| (free.offset, DiskEntry::from(free))),
+                )
+                .collect();
+            items.sort_by_key(|t| t.0);
+            items.into_iter().map(|t| t.1).collect()
+        };	
+    }
+}
 
 #[derive(Debug, PartialEq)]
 struct DiskMap(Vec<Option<usize>>);
@@ -94,7 +156,8 @@ impl DiskMap {
 
 impl FromIterator<DiskEntry> for DiskMap {
     fn from_iter<T>(entries: T) -> Self
-	where T: IntoIterator<Item = DiskEntry>
+    where
+        T: IntoIterator<Item = DiskEntry>,
     {
         let entries: Vec<_> = entries.into_iter().collect();
         let capacity: usize = entries
@@ -200,8 +263,9 @@ mod tests {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut diskmap: DiskMap = DiskEntry::parse(
-        &std::io::read_to_string(std::io::stdin())?).into_iter().collect();
+    let mut diskmap: DiskMap = DiskEntry::parse(&std::io::read_to_string(std::io::stdin())?)
+        .into_iter()
+        .collect();
     diskmap.defrag();
 
     println!("Part 1: {}", diskmap.checksum());
