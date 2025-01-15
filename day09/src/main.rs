@@ -28,12 +28,12 @@ impl DiskEntry {
     }
 }
 
-trait Defrag {
-    fn defrag(&mut self);
+trait DefragByEntry {
+    fn defrag_by_entry(&mut self);
 }
 
-impl Defrag for Vec<DiskEntry> {
-    fn defrag(&mut self) {
+impl DefragByEntry for Vec<DiskEntry> {
+    fn defrag_by_entry(&mut self) {
         // Keep local augmented structures with offset.
         struct File {
             id: usize,
@@ -80,9 +80,34 @@ impl Defrag for Vec<DiskEntry> {
             }
         }
 
+	let mut gaps: Vec<Free> = vec![];
+	
         for file in filelist.iter_mut().rev() {
-            // Look for available space
-            // If available, relocate, and shrink the free list.
+            let candidate_slot = freelist
+                .range((file.len, usize::MIN)..)
+                .min_by(|(_, x), (_, y)| x.offset.cmp(&y.offset));
+
+
+            if let Some((_, Free { len, offset })) = candidate_slot {
+                gaps.push(Free {
+                    len: file.len,
+                    offset: file.offset,
+                });
+                let (mut free_len, mut free_offset) = (*len, *offset);
+                freelist.remove(&(*len, *offset));
+                file.offset = free_offset;
+                free_len -= file.len;
+                if free_len > 0 {
+                    free_offset += file.len;
+                    freelist.insert(
+                        (free_len, free_offset),
+                        Free {
+                            len: free_len,
+                            offset: free_offset,
+                        },
+                    );
+                }
+            }
         }
 
         // Finally, restructure in terms of the relocations.
@@ -94,19 +119,20 @@ impl Defrag for Vec<DiskEntry> {
                     freelist
                         .into_values()
                         .into_iter()
+                        .chain(gaps)
                         .map(|free| (free.offset, DiskEntry::from(free))),
                 )
                 .collect();
             items.sort_by_key(|t| t.0);
             items.into_iter().map(|t| t.1).collect()
-        };	
+        };
     }
 }
 
 #[derive(Debug, PartialEq)]
 struct DiskMap(Vec<Option<usize>>);
 impl DiskMap {
-    fn defrag(&mut self) {
+    fn defrag_by_block(&mut self) {
         let n = self.0.len();
         let mut i: usize = 0;
         let mut j: isize = (n - 1) as isize;
@@ -154,7 +180,7 @@ impl DiskMap {
     }
 }
 
-impl <'a> FromIterator<&'a DiskEntry> for DiskMap {
+impl<'a> FromIterator<&'a DiskEntry> for DiskMap {
     fn from_iter<T>(entries: T) -> Self
     where
         T: IntoIterator<Item = &'a DiskEntry>,
@@ -247,7 +273,7 @@ mod tests {
     fn test_defrag() -> Result<()> {
         let mut diskmap: DiskMap = DiskEntry::parse(DATA).iter().collect();
         println!("{}", diskmap);
-        diskmap.defrag();
+        diskmap.defrag_by_block();
         verify_that!(
             diskmap.to_string(),
             eq("0099811188827773336446555566..............")
@@ -257,21 +283,26 @@ mod tests {
     #[gtest]
     fn test_checksum() -> Result<()> {
         let mut diskmap: DiskMap = DiskEntry::parse(DATA).iter().collect();
-        diskmap.defrag();
+        diskmap.defrag_by_block();
         verify_that!(diskmap.checksum(), eq(1928))
+    }
+
+    #[gtest]
+    fn test_part2() -> Result<()> {
+        let mut entries = DiskEntry::parse(DATA);
+        entries.defrag_by_entry();
+        let diskmap: DiskMap = entries.iter().collect();
+        verify_that!(diskmap.checksum(), eq(2858))
     }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut entries = DiskEntry::parse(&std::io::read_to_string(std::io::stdin())?);
-    let mut diskmap: DiskMap = entries.iter()
-        .collect();
-    diskmap.defrag();
-
+    let mut diskmap: DiskMap = entries.iter().collect();
+    diskmap.defrag_by_block();
     println!("Part 1: {}", diskmap.checksum());
 
-
-    entries.defrag();
+    entries.defrag_by_entry();
     diskmap = entries.iter().collect();
     println!("Part 2: {}", diskmap.checksum());
     Ok(())
