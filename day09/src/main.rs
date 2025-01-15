@@ -154,10 +154,10 @@ impl DiskMap {
     }
 }
 
-impl FromIterator<DiskEntry> for DiskMap {
+impl <'a> FromIterator<&'a DiskEntry> for DiskMap {
     fn from_iter<T>(entries: T) -> Self
     where
-        T: IntoIterator<Item = DiskEntry>,
+        T: IntoIterator<Item = &'a DiskEntry>,
     {
         let entries: Vec<_> = entries.into_iter().collect();
         let capacity: usize = entries
@@ -171,12 +171,12 @@ impl FromIterator<DiskEntry> for DiskMap {
         for entry in entries {
             match entry {
                 DiskEntry::File { len, id } => {
-                    for _ in 0..len {
-                        buffer.push(Some(id));
+                    for _ in 0..*len {
+                        buffer.push(Some(*id));
                     }
                 }
                 DiskEntry::Free(len) => {
-                    for _ in 0..len {
+                    for _ in 0..*len {
                         buffer.push(None);
                     }
                 }
@@ -227,7 +227,7 @@ mod tests {
     #[gtest]
     fn test_parse_diskmap() -> Result<()> {
         verify_that!(
-            DiskEntry::parse("1234").into_iter().collect::<DiskMap>(),
+            DiskEntry::parse("1234").iter().collect::<DiskMap>(),
             eq(&DiskMap(vec![
                 Some(0),
                 None,
@@ -245,7 +245,7 @@ mod tests {
 
     #[gtest]
     fn test_defrag() -> Result<()> {
-        let mut diskmap: DiskMap = DiskEntry::parse(DATA).into_iter().collect();
+        let mut diskmap: DiskMap = DiskEntry::parse(DATA).iter().collect();
         println!("{}", diskmap);
         diskmap.defrag();
         verify_that!(
@@ -256,18 +256,23 @@ mod tests {
 
     #[gtest]
     fn test_checksum() -> Result<()> {
-        let mut diskmap: DiskMap = DiskEntry::parse(DATA).into_iter().collect();
+        let mut diskmap: DiskMap = DiskEntry::parse(DATA).iter().collect();
         diskmap.defrag();
         verify_that!(diskmap.checksum(), eq(1928))
     }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut diskmap: DiskMap = DiskEntry::parse(&std::io::read_to_string(std::io::stdin())?)
-        .into_iter()
+    let mut entries = DiskEntry::parse(&std::io::read_to_string(std::io::stdin())?);
+    let mut diskmap: DiskMap = entries.iter()
         .collect();
     diskmap.defrag();
 
     println!("Part 1: {}", diskmap.checksum());
+
+
+    entries.defrag();
+    diskmap = entries.iter().collect();
+    println!("Part 2: {}", diskmap.checksum());
     Ok(())
 }
