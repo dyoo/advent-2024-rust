@@ -30,7 +30,7 @@ impl FieldMap {
             .map(|(index, _)| index)
     }
 
-    fn neighbors(&self, index: usize) -> Vec<usize> {
+    fn directional_neighbors(&self, index: usize) -> Vec<usize> {
 	let mut results = Vec::new();
 	// right
 	if index % self.width + 1 < self.width && index + 1 < self.data.len() {
@@ -73,13 +73,15 @@ mod tests {
     }
 
     #[gtest]
-    fn test_neighbors() -> Result<()> {
+    fn test_directional_neighbors() -> Result<()> {
 	let field = FieldMap::new("\
 0123
 1234
 8765
 	    ");
-	verify_that!(field.neighbors(0), [eq(&1), eq(&4)])
+	verify_that!(field.directional_neighbors(0), [eq(&1), eq(&4)])?;
+	verify_that!(field.directional_neighbors(5), [eq(&6), eq(&4), eq(&1), eq(&9)])?;
+	Ok(())
     }
 
 }
