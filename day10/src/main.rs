@@ -54,6 +54,23 @@ impl FieldMap {
 
         results
     }
+
+    fn neighbors(&self, i: usize) -> impl Iterator<Item=usize> + '_ {
+	self.directional_neighbors(i).into_iter().filter(move |j| self.data[i] + 1 == self.data[*j])
+    }
+
+    fn dfs(&self, start: impl IntoIterator<Item=usize>) -> Vec<usize> {
+	let mut to_visit: Vec<_> = start.into_iter().collect();
+	let mut visited = vec![false; self.data.len()];
+	while let Some(index) = to_visit.pop() {
+	    if visited[index] {
+		continue;
+	    }
+	    visited[index] = true;
+	    to_visit.extend(self.neighbors(index));
+	}
+	visited.into_iter().enumerate().filter(|(_, v)| *v).map(|(index, _)| index).collect()
+    }
 }
 
 #[cfg(test)]
@@ -102,6 +119,44 @@ mod tests {
 
         Ok(())
     }
+
+    #[gtest]
+    fn test_neighbors() -> Result<()> {
+        let field = FieldMap::new(
+            "\
+0123
+1234
+8765
+	    ",
+        );
+        verify_that!(
+            field.neighbors(1).collect::<Vec<_>>(),
+            unordered_elements_are![eq(&2), eq(&5)]
+        )?;
+
+        Ok(())
+    }
+
+    #[gtest]
+    fn test_dfs() -> Result<()> {
+        let field = FieldMap::new(
+            "\
+0023
+1234
+8765
+	    ",
+        );
+        verify_that!(
+            field.dfs([0]),
+            unordered_elements_are![eq(&0), eq(&4), eq(&5), eq(&6), eq(&7),
+	    eq(&8), eq(&9), eq(&10), eq(&11)]
+        )?;
+
+        Ok(())
+    }
+
+
+    
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
