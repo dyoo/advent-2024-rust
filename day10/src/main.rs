@@ -71,7 +71,18 @@ impl FieldMap {
 	}
 	visited.into_iter().enumerate().filter(|(_, v)| *v).map(|(index, _)| index).collect()
     }
+
+    fn trailhead_score(&self, trailhead:usize) -> usize {
+	let visited = self.dfs([trailhead]);
+	visited.into_iter().filter(|index| self.data[*index] == 9).count()
+    }
 }
+
+
+fn part_1(field_map: &FieldMap)-> usize {
+    field_map.trailheads().map(|trailhead| field_map.trailhead_score(trailhead)).sum()
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -156,13 +167,42 @@ mod tests {
     }
 
 
-    
+    #[gtest]
+    fn test_trailhead_score() -> Result<()> {
+        let field = FieldMap::new(
+            "\
+0123
+1234
+8765
+9876
+	    ",
+        );
+	verify_that!(field.trailhead_score(0),
+		     eq(1))?;
+	Ok(())
+    }
+
+    #[gtest]
+    fn test_part_1() -> Result<()> {
+	let data = "
+89010123
+78121874
+87430965
+96549874
+45678903
+32019012
+01329801
+10456732";
+	let field = FieldMap::new(data);
+	verify_that!(part_1(&field),
+		     eq(36))
+    } 
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = std::io::read_to_string(std::io::stdin())?;
     let field_map = FieldMap::new(&input);
-    println!("{:?}", field_map);
+    println!("Part 1: {:?}", part_1(&field_map));
 
     Ok(())
 }
