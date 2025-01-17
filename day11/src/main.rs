@@ -66,8 +66,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         println!("Part 1: {:?}", values_map.values().sum::<u64>());
 
-
-
         let mut values_map: HashMap<u64, u64> =
             histogram(parse(&input).collect::<Result<Vec<_>, _>>()?);
         for _ in 0..75 {
