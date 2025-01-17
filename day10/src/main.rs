@@ -76,11 +76,29 @@ impl FieldMap {
 	let visited = self.dfs([trailhead]);
 	visited.into_iter().filter(|index| self.data[*index] == 9).count()
     }
+
+    fn count_paths_to_9(&self, index: usize, visited: &[bool]) -> usize {
+	if self.data[index] == 9 {
+	    return 1;
+	}
+	let mut visited = Vec::from(visited);
+	visited[index] = true;
+	self.neighbors(index).into_iter().filter(|neighbor| !visited[*neighbor]).map(|neighbor| self.count_paths_to_9(neighbor, &visited)).sum()
+    }
+    
+    fn rating(&self, trailhead: usize) -> usize {
+	self.count_paths_to_9(trailhead, &vec![false; self.data.len()])
+    }
+    
 }
 
 
 fn part_1(field_map: &FieldMap)-> usize {
     field_map.trailheads().map(|trailhead| field_map.trailhead_score(trailhead)).sum()
+}
+
+fn part_2(field_map: &FieldMap)-> usize {
+    field_map.trailheads().map(|trailhead| field_map.rating(trailhead)).sum()
 }
 
 
@@ -196,13 +214,58 @@ mod tests {
 	let field = FieldMap::new(data);
 	verify_that!(part_1(&field),
 		     eq(36))
-    } 
+    }
+
+    #[gtest]
+    fn test_rating() -> Result<()> {
+	let data = "\
+0123456789";
+	let field = FieldMap::new(data);
+	verify_that!(field.rating(0), eq(1))?;
+	Ok(())
+    }
+
+    #[gtest]
+    fn test_rating_larger() -> Result<()> {
+	let data = "\
+89010123
+78121874
+87430965
+96549874
+45678903
+32019012
+01329801
+10456732
+";
+	let field = FieldMap::new(data);
+	verify_that!(field.rating(2), eq(20))?;
+	verify_that!(field.rating(4), eq(24))?;
+	Ok(())
+    }
+
+
+    #[gtest]
+    fn test_rating_part_2() -> Result<()> {
+	let data = "\
+89010123
+78121874
+87430965
+96549874
+45678903
+32019012
+01329801
+10456732
+";
+	let field = FieldMap::new(data);
+	verify_that!(part_2(&field), eq(81))
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = std::io::read_to_string(std::io::stdin())?;
     let field_map = FieldMap::new(&input);
     println!("Part 1: {:?}", part_1(&field_map));
+    println!("Part 2: {:?}", part_2(&field_map));
 
     Ok(())
 }
