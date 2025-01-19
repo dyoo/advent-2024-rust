@@ -1,8 +1,9 @@
+use advent_2024_rust::TileIndex;
+
 #[derive(Debug, PartialEq)]
 struct FieldMap {
     data: Vec<u8>,
-    height: usize,
-    width: usize,
+    tiles: TileIndex,
 }
 
 impl FieldMap {
@@ -17,8 +18,7 @@ impl FieldMap {
 
         Self {
             data,
-            height,
-            width,
+            tiles: TileIndex { height, width },
         }
     }
 
@@ -30,29 +30,13 @@ impl FieldMap {
             .map(|(index, _)| index)
     }
 
-    fn directional_neighbors(&self, index: usize) -> Vec<usize> {
-        let mut results = Vec::new();
-        // right
-        if index % self.width + 1 < self.width && index + 1 < self.data.len() {
-            results.push(index + 1);
-        }
-
-        // left
-        if index % self.width > 0 && index != 0 {
-            results.push(index - 1)
-        }
-
-        // up
-        if index / self.width > 0 {
-            results.push(index - self.width)
-        }
-
-        // down
-        if index / self.width < self.height - 1 {
-            results.push(index + self.width)
-        }
-
-        results
+    fn directional_neighbors(&self, index: usize) -> impl Iterator<Item = usize> {
+        self.tiles
+            .left(index)
+            .into_iter()
+            .chain(self.tiles.right(index))
+            .chain(self.tiles.up(index))
+            .chain(self.tiles.down(index))
     }
 
     fn neighbors(&self, i: usize) -> impl Iterator<Item = usize> + '_ {
@@ -147,19 +131,19 @@ mod tests {
 	    ",
         );
         verify_that!(
-            field.directional_neighbors(0),
+            field.directional_neighbors(0).collect::<Vec<_>>(),
             unordered_elements_are![eq(&1), eq(&4)]
         )?;
         verify_that!(
-            field.directional_neighbors(5),
+            field.directional_neighbors(5).collect::<Vec<_>>(),
             unordered_elements_are![eq(&6), eq(&4), eq(&1), eq(&9)]
         )?;
         verify_that!(
-            field.directional_neighbors(11),
+            field.directional_neighbors(11).collect::<Vec<_>>(),
             unordered_elements_are![eq(&10), eq(&7)]
         )?;
         verify_that!(
-            field.directional_neighbors(10),
+            field.directional_neighbors(10).collect::<Vec<_>>(),
             unordered_elements_are![eq(&9), eq(&11), eq(&6)]
         )?;
 
