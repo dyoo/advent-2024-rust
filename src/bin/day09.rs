@@ -80,13 +80,12 @@ impl DefragByEntry for Vec<DiskEntry> {
             }
         }
 
-	let mut gaps: Vec<Free> = vec![];
-	
+        let mut gaps: Vec<Free> = vec![];
+
         for file in filelist.iter_mut().rev() {
             let candidate_slot = freelist
                 .range((file.len, usize::MIN)..)
                 .min_by(|(_, x), (_, y)| x.offset.cmp(&y.offset));
-
 
             if let Some((_, Free { len, offset })) = candidate_slot {
                 gaps.push(Free {

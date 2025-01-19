@@ -26,7 +26,13 @@ impl Plot {
         let mut result = Vec::new();
 
         let mut visited = vec![false; self.data.len()];
-        while let Some(index) = visited.iter().rposition(|x| !*x) {
+        let mut last_unvisited = visited.len();
+        loop {
+            let Some(index) = (&visited[..last_unvisited]).into_iter().rposition(|x| !*x) else {
+                break;
+            };
+            last_unvisited = index;
+
             let name = self.data[index];
             let mut indices = Vec::new();
             let mut queue = vec![index];
@@ -55,6 +61,33 @@ impl Plot {
         }
 
         result
+    }
+
+    fn perimeter(&self, region: &Region) -> usize {
+        region
+            .indices
+            .iter()
+            .map(|&idx| {
+                [
+                    self.tiles.left(idx),
+                    self.tiles.right(idx),
+                    self.tiles.up(idx),
+                    self.tiles.down(idx),
+                ]
+                .into_iter()
+                .map(|neighbor| match neighbor {
+                    None => 1,
+                    Some(i) => usize::from(self.data[i] != self.data[idx]),
+                })
+                .sum::<usize>()
+            })
+            .sum()
+    }
+}
+
+impl Region {
+    fn area(&self) -> usize {
+        self.indices.len()
     }
 }
 
@@ -101,8 +134,56 @@ EEEC
 
         Ok(())
     }
+
+    #[gtest]
+    fn test_perimeters() -> Result<()> {
+        let data = "
+AAAA
+BBCD
+BBCC
+EEEC
+";
+        let plot = Plot::new(data);
+        let regions = plot.collect_regions();
+        verify_that!(
+            regions
+                .into_iter()
+                .map(|region| (region.name, plot.perimeter(&region)))
+                .collect::<Vec<_>>(),
+            { &('A', 10), &('B', 8), &('C', 10), &('D', 4), &('E', 8) }
+        )
+    }
+
+    #[gtest]
+    fn test_part_1() -> Result<()> {
+        let data = "
+RRRRIICCFF
+RRRRIICCCF
+VVRRRCCFFF
+VVRCCCJFFF
+VVVVCJJCFE
+VVIVCCJJEE
+VVIIICJJEE
+MIIIIIJJEE
+MIIISIJEEE
+MMMISSJEEE
+";
+        let plot = Plot::new(data);
+        verify_that!(part_1(&plot), eq(1930))
+    }
 }
 
-fn main() {
-    println!("Hello, world!");
+fn part_1(plot: &Plot) -> usize {
+    let regions = plot.collect_regions();
+    regions
+        .into_iter()
+        .map(|region| region.area() * plot.perimeter(&region))
+        .sum()
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = std::io::read_to_string(std::io::stdin())?;
+    let plot = Plot::new(&data);
+    println!("Part 1: {}", part_1(&plot));
+    Ok(())
 }
