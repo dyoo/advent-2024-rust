@@ -1,18 +1,18 @@
 use advent_2024_rust::TileIndex;
 
-struct Plot {
-    data: Vec<char>,
+struct Plot<T> {
+    data: Vec<T>,
     tiles: TileIndex,
 }
 
 #[derive(Debug)]
-struct Region {
-    name: char,
+struct Region<T> {
+    name: T,
     indices: Vec<usize>,
 }
 
-impl Plot {
-    fn new(s: &str) -> Plot {
+impl Plot<char> {
+    fn new(s: &str) -> Self {
         let data: Vec<char> = s.trim().lines().flat_map(str::chars).collect();
         let height = s.trim().lines().count();
         let width = data.len() / height;
@@ -21,8 +21,10 @@ impl Plot {
             tiles: TileIndex { height, width },
         }
     }
+}
 
-    fn collect_regions(&self) -> Vec<Region> {
+impl<T: PartialEq + Copy> Plot<T> {
+    fn collect_regions(&self) -> Vec<Region<T>> {
         let mut result = Vec::new();
 
         let mut visited = vec![false; self.data.len()];
@@ -63,7 +65,7 @@ impl Plot {
         result
     }
 
-    fn perimeter(&self, region: &Region) -> usize {
+    fn perimeter(&self, region: &Region<T>) -> usize {
         region
             .indices
             .iter()
@@ -85,7 +87,7 @@ impl Plot {
     }
 }
 
-impl Region {
+impl<T> Region<T> {
     fn area(&self) -> usize {
         self.indices.len()
     }
@@ -173,7 +175,7 @@ MMMISSJEEE
     }
 }
 
-fn part_1(plot: &Plot) -> usize {
+fn part_1(plot: &Plot<char>) -> usize {
     let regions = plot.collect_regions();
     regions
         .into_iter()
