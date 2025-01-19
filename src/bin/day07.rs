@@ -139,7 +139,7 @@ mod tests {
 
     #[gtest]
     fn test_part_1() -> Result<()> {
-        let mut problem = DATA
+        let problem = DATA
             .lines()
             .map(str::parse::<Equation>)
             .collect::<std::result::Result<Vec<Equation>, _>>()
@@ -168,7 +168,7 @@ mod tests {
 
     #[gtest]
     fn test_part_2() -> Result<()> {
-        let mut problem = DATA
+        let problem = DATA
             .lines()
             .map(str::parse::<Equation>)
             .collect::<std::result::Result<Vec<Equation>, _>>()
