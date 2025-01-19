@@ -85,6 +85,40 @@ impl<T: PartialEq + Copy> Plot<T> {
             })
             .sum()
     }
+
+    fn sides(&self, region: &Region<T>) -> usize {
+        [
+            TileIndex::left,
+            TileIndex::right,
+            TileIndex::up,
+            TileIndex::down,
+        ]
+        .into_iter()
+        .map(|directional_indexer| {
+            let edges = region.indices.iter().copied().filter(|&i| {
+                let neighbor = directional_indexer(&self.tiles, i);
+                match neighbor {
+                    None => true,
+                    Some(j) => self.data[i] != self.data[j],
+                }
+            });
+
+            let mut edge_data = vec![false; self.data.len()];
+            for e in edges {
+                edge_data[e] = true;
+            }
+
+            (Plot {
+                data: edge_data,
+                tiles: self.tiles.clone(),
+            })
+            .collect_regions()
+            .into_iter()
+            .filter(|r| r.name == true)
+            .count()
+        })
+        .sum()
+    }
 }
 
 impl<T> Region<T> {
@@ -173,6 +207,51 @@ MMMISSJEEE
         let plot = Plot::new(data);
         verify_that!(part_1(&plot), eq(1930))
     }
+
+    #[gtest]
+    fn test_sides() -> Result<()> {
+        let data = "
+AAAA
+BBCD
+BBCC
+EEEC
+";
+        let plot = Plot::new(data);
+        let regions = plot.collect_regions();
+        verify_that!(
+            regions
+                .into_iter()
+                .map(|region| (region.name, plot.sides(&region)))
+                .collect::<Vec<_>>(),
+            { &('A', 4), &('B', 4), &('C', 8), &('D', 4), &('E', 4) }
+        )
+    }
+
+    #[gtest]
+    fn test_part_2() -> Result<()> {
+        let data = "
+AAAA
+BBCD
+BBCC
+EEEC
+";
+        let plot = Plot::new(data);
+        verify_that!(part_2(&plot), eq(80))
+    }
+
+    #[gtest]
+    fn test_part_2_intermediate() -> Result<()> {
+        let data = "
+AAAAAA
+AAABBA
+AAABBA
+ABBAAA
+ABBAAA
+AAAAAA
+";
+        let plot = Plot::new(data);
+        verify_that!(part_2(&plot), eq(368))
+    }
 }
 
 fn part_1(plot: &Plot<char>) -> usize {
@@ -183,9 +262,18 @@ fn part_1(plot: &Plot<char>) -> usize {
         .sum()
 }
 
+fn part_2(plot: &Plot<char>) -> usize {
+    let regions = plot.collect_regions();
+    regions
+        .into_iter()
+        .map(|region| region.area() * plot.sides(&region))
+        .sum()
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let data = std::io::read_to_string(std::io::stdin())?;
     let plot = Plot::new(&data);
     println!("Part 1: {}", part_1(&plot));
+    println!("Part 2: {}", part_2(&plot));
     Ok(())
 }
