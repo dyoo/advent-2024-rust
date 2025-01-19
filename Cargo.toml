@@ -1,9 +1,11 @@
 [package]
-name = "day02"
+name = "advent-2024-rust"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+rayon = "1.10.0"
+regex = "1.11.1"
 
 [dev-dependencies]
 googletest = "0.13.0"
