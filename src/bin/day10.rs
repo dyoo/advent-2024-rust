@@ -1,4 +1,4 @@
-use advent_2024_rust::TileIndex;
+use advent_2024::TileIndex;
 
 #[derive(Debug, PartialEq)]
 struct FieldMap {
