@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use nom::bytes::complete::tag;
-use nom::character::complete::alpha1;
-use nom::character::complete::u32;
+use nom::character::complete::{alpha1, line_ending, u32};
+use nom::multi::{many1, separated_list0};
 use nom::IResult;
 use std::cmp::{Ord, PartialOrd, Reverse};
 use std::collections::BinaryHeap;
@@ -139,6 +139,21 @@ mod tests {
 
         Ok(())
     }
+
+    #[gtest]
+    fn test_parse_claw() -> Result<()> {
+        let (_, (a, b, prize)) = parse_claw(
+            "\
+Button A: X+94, Y+34
+Button B: X+22, Y+67
+Prize: X=8400, Y=5400",
+        )?;
+        verify_that!(a, eq(Point(94, 34)))?;
+        verify_that!(b, eq(Point(22, 67)))?;
+        verify_that!(prize, eq(Point(8400, 5400)))?;
+
+        Ok(())
+    }
 }
 
 fn parse_button(input: &str) -> IResult<&str, (&str, Point)> {
@@ -161,6 +176,23 @@ fn parse_prize(input: &str) -> IResult<&str, Point> {
     Ok((input, Point(x, y)))
 }
 
+fn parse_claw(input: &str) -> IResult<&str, (Point, Point, Point)> {
+    let (input, (_, a)) = parse_button(input)?;
+    let (input, _) = line_ending(input)?;
+    let (input, (_, b)) = parse_button(input)?;
+    let (input, _) = line_ending(input)?;
+    let (input, prize) = parse_prize(input)?;
+    Ok((input, (a, b, prize)))
+}
+
+fn parse_all_claws(s: &str) -> IResult<&str, Vec<(Point, Point, Point)>> {
+    separated_list0(many1(line_ending), parse_claw)(s)
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
+    let input = std::io::read_to_string(std::io::stdin())?;
+    let (input, claws) = parse_all_claws(&input).map_err(|e| e.to_owned())?;
+
+    dbg!(&claws);
     Ok(())
 }
