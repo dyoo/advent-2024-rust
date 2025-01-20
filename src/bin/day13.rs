@@ -189,10 +189,17 @@ fn parse_all_claws(s: &str) -> IResult<&str, Vec<(Point, Point, Point)>> {
     separated_list0(many1(line_ending), parse_claw)(s)
 }
 
+fn part_1(claws: &[(Point, Point, Point)]) -> u32 {
+    claws
+        .into_iter()
+        .filter_map(|(a, b, prize)| solver(a, b, prize))
+        .sum()
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let input = std::io::read_to_string(std::io::stdin())?;
     let (input, claws) = parse_all_claws(&input).map_err(|e| e.to_owned())?;
 
-    dbg!(&claws);
+    println!("Part 1: {}", part_1(&claws));
     Ok(())
 }
