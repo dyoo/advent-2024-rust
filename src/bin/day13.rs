@@ -1,5 +1,12 @@
+#![allow(dead_code)]
+
+use nom::bytes::complete::tag;
+use nom::character::complete::alpha1;
+use nom::character::complete::u32;
+use nom::IResult;
 use std::cmp::{Ord, PartialOrd, Reverse};
 use std::collections::BinaryHeap;
+use std::error::Error;
 use std::ops::{Add, Sub};
 
 #[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Copy, Clone)]
@@ -114,8 +121,46 @@ mod tests {
 
         Ok(())
     }
+
+    #[gtest]
+    fn test_parse_button() -> Result<()> {
+        let (_, button) = parse_button("Button A: X+21, Y+56")?;
+        verify_that!(button, eq(("A", Point(21, 56))))?;
+
+        let (_, button) = parse_button("Button B: X+59, Y+28")?;
+        verify_that!(button, eq(("B", Point(59, 28))))?;
+        Ok(())
+    }
+
+    #[gtest]
+    fn test_parse_prize() -> Result<()> {
+        let (_, prize) = parse_prize("Prize: X=3892, Y=3840")?;
+        verify_that!(prize, eq(Point(3892, 3840)))?;
+
+        Ok(())
+    }
 }
 
-fn main() {
-    println!("Hello world");
+fn parse_button(input: &str) -> IResult<&str, (&str, Point)> {
+    let (input, _) = tag("Button ")(input)?;
+    // eat A or B
+    let (input, name) = alpha1(input)?;
+    let (input, _) = tag(": X+")(input)?;
+    let (input, x) = u32(input)?;
+    let (input, _) = tag(", Y+")(input)?;
+    let (input, y) = u32(input)?;
+
+    Ok((input, (name, Point(x, y))))
+}
+
+fn parse_prize(input: &str) -> IResult<&str, Point> {
+    let (input, _) = tag("Prize: X=")(input)?;
+    let (input, x) = u32(input)?;
+    let (input, _) = tag(", Y=")(input)?;
+    let (input, y) = u32(input)?;
+    Ok((input, Point(x, y)))
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    Ok(())
 }
