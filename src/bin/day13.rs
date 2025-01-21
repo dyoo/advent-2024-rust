@@ -1,9 +1,3 @@
-#![allow(dead_code)]
-
-use nom::bytes::complete::tag;
-use nom::character::complete::{alpha1, line_ending, i64};
-use nom::multi::{many1, separated_list0};
-use nom::IResult;
 use std::cmp::{Ord, PartialOrd, Reverse};
 use std::collections::BinaryHeap;
 use std::error::Error;
@@ -101,18 +95,22 @@ fn dijkstra_solver(a: &Point, b: &Point, prize: &Point) -> Option<i64> {
 ///    m = (b0 * p1 - b1 * p0) / (a1 * b0 - a0 * b1)
 ///    n = (a1 * p0 - a0 * p1) / (a1 * b0 - a0 * b1)
 fn linear_algebra_solver(a: &Point, b: &Point, p: &Point) -> Option<i64> {
-    let divisor = (a.1 * b.0).checked_sub(a.0 * b.1).expect("underflow");
+    let mut divisor = (a.1 * b.0).checked_sub(a.0 * b.1).expect("underflow");
+    let mut sign = 1;
     if divisor == 0 {
         // In this case, we'd have to do something with diophantine equations.
         // https://en.wikipedia.org/wiki/Diophantine_equation#One_equation
-        // 
+        //
         // For now, we give up, as it appears that the test data
         // doesn't hit this case.
         panic!("divisor zero");
+    } else if divisor < 0 {
+        divisor = -divisor;
+        sign = -1;
     }
 
-    let m_numerator = b.0 * p.1 - b.1 * p.0;
-    let n_numerator = a.1 * p.0 - a.0 * p.1;
+    let m_numerator = sign * (b.0 * p.1 - b.1 * p.0);
+    let n_numerator = sign * (a.1 * p.0 - a.0 * p.1);
 
     if m_numerator % divisor == 0 && n_numerator % divisor == 0 {
         Some((3 * m_numerator + n_numerator) / divisor)
@@ -154,40 +152,6 @@ mod tests {
     }
 
     #[gtest]
-    fn test_parse_button() -> Result<()> {
-        let (_, button) = parse_button("Button A: X+21, Y+56")?;
-        verify_that!(button, eq(("A", Point(21, 56))))?;
-
-        let (_, button) = parse_button("Button B: X+59, Y+28")?;
-        verify_that!(button, eq(("B", Point(59, 28))))?;
-        Ok(())
-    }
-
-    #[gtest]
-    fn test_parse_prize() -> Result<()> {
-        let (_, prize) = parse_prize("Prize: X=3892, Y=3840")?;
-        verify_that!(prize, eq(Point(3892, 3840)))?;
-
-        Ok(())
-    }
-
-    #[gtest]
-    fn test_parse_claw() -> Result<()> {
-        let (_, (a, b, prize)) = parse_claw(
-            "\
-Button A: X+94, Y+34
-Button B: X+22, Y+67
-Prize: X=8400, Y=5400",
-        )?;
-        verify_that!(a, eq(Point(94, 34)))?;
-        verify_that!(b, eq(Point(22, 67)))?;
-        verify_that!(prize, eq(Point(8400, 5400)))?;
-
-        Ok(())
-    }
-
-
-    #[gtest]
     fn test_linear_algebra_solver_small() -> Result<()> {
         verify_that!(
             linear_algebra_solver(&Point(94, 34), &Point(22, 67), &Point(8400, 5400)),
@@ -213,37 +177,84 @@ Prize: X=8400, Y=5400",
     }
 }
 
-fn parse_button(input: &str) -> IResult<&str, (&str, Point)> {
-    let (input, _) = tag("Button ")(input)?;
-    // eat A or B
-    let (input, name) = alpha1(input)?;
-    let (input, _) = tag(": X+")(input)?;
-    let (input, x) = i64(input)?;
-    let (input, _) = tag(", Y+")(input)?;
-    let (input, y) = i64(input)?;
+mod parser {
+    use super::*;
+    use nom::bytes::complete::tag;
+    use nom::character::complete::{alpha1, i64, line_ending};
+    use nom::multi::{many1, separated_list0};
+    use nom::IResult;
 
-    Ok((input, (name, Point(x, y))))
-}
+    pub fn parse_button(input: &str) -> IResult<&str, (&str, Point)> {
+        let (input, _) = tag("Button ")(input)?;
+        // eat A or B
+        let (input, name) = alpha1(input)?;
+        let (input, _) = tag(": X+")(input)?;
+        let (input, x) = i64(input)?;
+        let (input, _) = tag(", Y+")(input)?;
+        let (input, y) = i64(input)?;
 
-fn parse_prize(input: &str) -> IResult<&str, Point> {
-    let (input, _) = tag("Prize: X=")(input)?;
-    let (input, x) = i64(input)?;
-    let (input, _) = tag(", Y=")(input)?;
-    let (input, y) = i64(input)?;
-    Ok((input, Point(x, y)))
-}
+        Ok((input, (name, Point(x, y))))
+    }
 
-fn parse_claw(input: &str) -> IResult<&str, (Point, Point, Point)> {
-    let (input, (_, a)) = parse_button(input)?;
-    let (input, _) = line_ending(input)?;
-    let (input, (_, b)) = parse_button(input)?;
-    let (input, _) = line_ending(input)?;
-    let (input, prize) = parse_prize(input)?;
-    Ok((input, (a, b, prize)))
-}
+    pub fn parse_prize(input: &str) -> IResult<&str, Point> {
+        let (input, _) = tag("Prize: X=")(input)?;
+        let (input, x) = i64(input)?;
+        let (input, _) = tag(", Y=")(input)?;
+        let (input, y) = i64(input)?;
+        Ok((input, Point(x, y)))
+    }
 
-fn parse_all_claws(s: &str) -> IResult<&str, Vec<(Point, Point, Point)>> {
-    separated_list0(many1(line_ending), parse_claw)(s)
+    pub fn parse_claw(input: &str) -> IResult<&str, (Point, Point, Point)> {
+        let (input, (_, a)) = parse_button(input)?;
+        let (input, _) = line_ending(input)?;
+        let (input, (_, b)) = parse_button(input)?;
+        let (input, _) = line_ending(input)?;
+        let (input, prize) = parse_prize(input)?;
+        Ok((input, (a, b, prize)))
+    }
+
+    pub fn parse_all_claws(s: &str) -> IResult<&str, Vec<(Point, Point, Point)>> {
+        separated_list0(many1(line_ending), parse_claw)(s)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use googletest::prelude::*;
+
+        #[gtest]
+        fn test_parse_button() -> Result<()> {
+            let (_, button) = parse_button("Button A: X+21, Y+56")?;
+            verify_that!(button, eq(("A", Point(21, 56))))?;
+
+            let (_, button) = parse_button("Button B: X+59, Y+28")?;
+            verify_that!(button, eq(("B", Point(59, 28))))?;
+            Ok(())
+        }
+
+        #[gtest]
+        fn test_parse_prize() -> Result<()> {
+            let (_, prize) = parse_prize("Prize: X=3892, Y=3840")?;
+            verify_that!(prize, eq(Point(3892, 3840)))?;
+
+            Ok(())
+        }
+
+        #[gtest]
+        fn test_parse_claw() -> Result<()> {
+            let (_, (a, b, prize)) = parse_claw(
+                "\
+Button A: X+94, Y+34
+Button B: X+22, Y+67
+Prize: X=8400, Y=5400",
+            )?;
+            verify_that!(a, eq(Point(94, 34)))?;
+            verify_that!(b, eq(Point(22, 67)))?;
+            verify_that!(prize, eq(Point(8400, 5400)))?;
+
+            Ok(())
+        }
+    }
 }
 
 fn part_1(
@@ -275,7 +286,7 @@ fn part_2(
 
 fn main() -> Result<(), Box<dyn Error>> {
     let input = std::io::read_to_string(std::io::stdin())?;
-    let (_, claws) = parse_all_claws(&input).map_err(|e| e.to_owned())?;
+    let (_, claws) = parser::parse_all_claws(&input).map_err(|e| e.to_owned())?;
 
     println!("Part 1: dijkstra {}", part_1(&claws, dijkstra_solver));
     println!("Part 1: linear {}", part_1(&claws, linear_algebra_solver));
