@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use nom::bytes::complete::tag;
-use nom::character::complete::{alpha1, line_ending, u32};
+use nom::character::complete::{alpha1, line_ending, u64};
 use nom::multi::{many1, separated_list0};
 use nom::IResult;
 use std::cmp::{Ord, PartialOrd, Reverse};
@@ -10,7 +10,7 @@ use std::error::Error;
 use std::ops::{Add, Sub};
 
 #[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Copy, Clone)]
-struct Point(u32, u32);
+struct Point(u64, u64);
 
 impl Add for Point {
     type Output = Self;
@@ -52,12 +52,12 @@ impl Sub<&Point> for Point {
 /// pressed]` the same as `[a pressed, a pressed, b pressed]`.  So we
 /// design the possible actions so that we keep a canonical sequence,
 /// given the order independence between the button presses.
-fn solver(a: &Point, b: &Point, prize: &Point) -> Option<u32> {
+fn solver(a: &Point, b: &Point, prize: &Point) -> Option<u64> {
     let mut heap = BinaryHeap::new();
 
     #[derive(Debug, PartialEq, PartialOrd, Ord, Eq)]
     struct State {
-        tokens: u32,
+        tokens: u64,
         point: Point,
     }
 
@@ -161,18 +161,18 @@ fn parse_button(input: &str) -> IResult<&str, (&str, Point)> {
     // eat A or B
     let (input, name) = alpha1(input)?;
     let (input, _) = tag(": X+")(input)?;
-    let (input, x) = u32(input)?;
+    let (input, x) = u64(input)?;
     let (input, _) = tag(", Y+")(input)?;
-    let (input, y) = u32(input)?;
+    let (input, y) = u64(input)?;
 
     Ok((input, (name, Point(x, y))))
 }
 
 fn parse_prize(input: &str) -> IResult<&str, Point> {
     let (input, _) = tag("Prize: X=")(input)?;
-    let (input, x) = u32(input)?;
+    let (input, x) = u64(input)?;
     let (input, _) = tag(", Y=")(input)?;
-    let (input, y) = u32(input)?;
+    let (input, y) = u64(input)?;
     Ok((input, Point(x, y)))
 }
 
@@ -189,10 +189,24 @@ fn parse_all_claws(s: &str) -> IResult<&str, Vec<(Point, Point, Point)>> {
     separated_list0(many1(line_ending), parse_claw)(s)
 }
 
-fn part_1(claws: &[(Point, Point, Point)]) -> u32 {
+fn part_1(claws: &[(Point, Point, Point)]) -> u64 {
     claws
         .into_iter()
         .filter_map(|(a, b, prize)| solver(a, b, prize))
+        .sum()
+}
+
+fn part_2(claws: &[(Point, Point, Point)]) -> u64 {
+    claws
+        .into_iter()
+        .map(|(a, b, prize)| {
+            (
+                a,
+                b,
+                Point(prize.0 + 10000000000000, prize.1 + 10000000000000),
+            )
+        })
+        .filter_map(|(a, b, prize)| solver(a, b, &prize))
         .sum()
 }
 
@@ -201,5 +215,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (input, claws) = parse_all_claws(&input).map_err(|e| e.to_owned())?;
 
     println!("Part 1: {}", part_1(&claws));
+
+    // Essentially, we're trying to find naturals n1, n2 such that
+    //    n1 * A + n2 * B = prize
+    // and
+    //    Cost(n1, n2) = 3*n1 + n2 is minimized.
+    //
+    // Can we treat this algebraically as a calculus problem?
+    //
+    // We can express n2 in terms of n1 for each problem, because
+    //
+    // n1 * A + n2 * B = prize
+    // ==>  n2 * B = (prize - n1 * A)
+
+    // Cost(n1, n2) * B = 3 * n1 * B + n2 * B
+    // ==> Cost(n1) * B = 3 * n1 * B + (prize - n1 * A)
+
+    println!("Part 2: {}", part_2(&claws));
     Ok(())
 }
