@@ -52,7 +52,7 @@ impl Sub<&Point> for Point {
 /// pressed]` the same as `[a pressed, a pressed, b pressed]`.  So we
 /// design the possible actions so that we keep a canonical sequence,
 /// given the order independence between the button presses.
-fn solver(a: &Point, b: &Point, prize: &Point) -> Option<u64> {
+fn dijkstra_solver(a: &Point, b: &Point, prize: &Point) -> Option<u64> {
     let mut heap = BinaryHeap::new();
 
     #[derive(Debug, PartialEq, PartialOrd, Ord, Eq)]
@@ -98,24 +98,24 @@ mod tests {
     use googletest::prelude::*;
 
     #[gtest]
-    fn test_solver_small() -> Result<()> {
+    fn test_dijkstra_solver_small() -> Result<()> {
         verify_that!(
-            solver(&Point(94, 34), &Point(22, 67), &Point(8400, 5400)),
+            dijkstra_solver(&Point(94, 34), &Point(22, 67), &Point(8400, 5400)),
             some(eq(280))
         )?;
 
         verify_that!(
-            solver(&Point(26, 66), &Point(67, 21), &Point(12748, 12176)),
+            dijkstra_solver(&Point(26, 66), &Point(67, 21), &Point(12748, 12176)),
             none()
         )?;
 
         verify_that!(
-            solver(&Point(17, 86), &Point(84, 37), &Point(7870, 6450)),
+            dijkstra_solver(&Point(17, 86), &Point(84, 37), &Point(7870, 6450)),
             some(eq(200))
         )?;
 
         verify_that!(
-            solver(&Point(64, 23), &Point(27, 71), &Point(18641, 10279)),
+            dijkstra_solver(&Point(64, 23), &Point(27, 71), &Point(18641, 10279)),
             none()
         )?;
 
@@ -192,7 +192,7 @@ fn parse_all_claws(s: &str) -> IResult<&str, Vec<(Point, Point, Point)>> {
 fn part_1(claws: &[(Point, Point, Point)]) -> u64 {
     claws
         .into_iter()
-        .filter_map(|(a, b, prize)| solver(a, b, prize))
+        .filter_map(|(a, b, prize)| dijkstra_solver(a, b, prize))
         .sum()
 }
 
@@ -206,7 +206,7 @@ fn part_2(claws: &[(Point, Point, Point)]) -> u64 {
                 Point(prize.0 + 10000000000000, prize.1 + 10000000000000),
             )
         })
-        .filter_map(|(a, b, prize)| solver(a, b, &prize))
+        .filter_map(|(a, b, prize)| dijkstra_solver(a, b, &prize))
         .sum()
 }
 
