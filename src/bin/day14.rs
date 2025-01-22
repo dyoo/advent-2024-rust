@@ -130,10 +130,49 @@ fn part_1(robots: Vec<Robot>) -> u32 {
     scores.into_iter().product()
 }
 
+/// Exploration to find some kind of interesting pattern.
+fn visualize(robots: &[Robot], width: usize, height: usize) -> bool {
+    let mut buffer = vec![vec!['.'; width]; height];
+    for r in robots {
+        buffer[r.pos.1 as usize][r.pos.0 as usize] = '*';
+    }
+
+    let mut possible_match = false;
+    for line in buffer.iter() {
+        let line = line.into_iter().collect::<String>();
+        if line.find("*************").is_some() {
+            possible_match = true;
+        }
+    }
+
+    if !possible_match { return false ; }
+    for line in buffer.iter() {
+        let line = line.into_iter().collect::<String>();
+        println!("{}", line);
+    }
+    true
+}
+
+fn part_2(mut robots: Vec<Robot>) {
+    for i in 0..10000 {
+        if visualize(&robots, 101, 103) {
+            println!("{}", i);
+            println!();
+        }
+
+        robots = robots
+            .into_iter()
+            .map(|r| r.simulate_movement(1, 101, 103))
+            .collect();
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (_, robots) = parser::parse_all_robots(&std::io::read_to_string(std::io::stdin())?)
         .map_err(|e| e.to_owned())?;
-    println!("{:?}", part_1(robots));
+    println!("{:?}", part_1(robots.clone()));
 
+
+    part_2(robots);
     Ok(())
 }
