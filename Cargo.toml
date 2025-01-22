@@ -10,3 +10,4 @@ regex = "1.11.1"
 
 [dev-dependencies]
 googletest = "0.13.0"
+indoc = "2.0.5"

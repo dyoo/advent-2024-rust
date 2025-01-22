@@ -7,6 +7,7 @@ name = "advent-2024"
 version = "0.1.0"
 dependencies = [
  "googletest",
+ "indoc",
  "nom",
  "rayon",
  "regex",
@@ -80,6 +81,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "indoc"
+version = "2.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b248f5224d1d606005e02c97f5aa4e88eeb230488bcc03bc9ca4d7991399f2b5"
 
 [[package]]
 name = "memchr"

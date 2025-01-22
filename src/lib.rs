@@ -4,7 +4,24 @@ pub struct TileIndex {
     pub height: usize,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum Direction {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
 impl TileIndex {
+    pub fn dir_to(&self, index: usize, dir: Direction) -> Option<usize> {
+        match dir {
+            Direction::Left => self.left(index),
+            Direction::Right => self.right(index),
+            Direction::Up => self.up(index),
+            Direction::Down => self.down(index),
+        }
+    }
+
     pub fn right(&self, index: usize) -> Option<usize> {
         if index % self.width + 1 < self.width && index + 1 < (self.width * self.height) {
             Some(index + 1)

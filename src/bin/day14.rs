@@ -145,7 +145,9 @@ fn visualize(robots: &[Robot], width: usize, height: usize) -> bool {
         }
     }
 
-    if !possible_match { return false ; }
+    if !possible_match {
+        return false;
+    }
     for line in buffer.iter() {
         let line = line.into_iter().collect::<String>();
         println!("{}", line);
@@ -171,7 +173,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (_, robots) = parser::parse_all_robots(&std::io::read_to_string(std::io::stdin())?)
         .map_err(|e| e.to_owned())?;
     println!("{:?}", part_1(robots.clone()));
-
 
     part_2(robots);
     Ok(())
