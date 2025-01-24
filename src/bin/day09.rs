@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 #[derive(Debug, PartialEq)]
 enum DiskEntry {
     File { id: usize, len: usize },
@@ -33,8 +31,10 @@ trait DefragByEntry {
 }
 
 impl DefragByEntry for Vec<DiskEntry> {
+
     fn defrag_by_entry(&mut self) {
         // Keep local augmented structures with offset.
+	#[derive(Debug)]
         struct File {
             id: usize,
             offset: usize,
@@ -49,6 +49,7 @@ impl DefragByEntry for Vec<DiskEntry> {
             }
         }
 
+	#[derive(Debug)]
         struct Free {
             offset: usize,
             len: usize,
@@ -59,7 +60,7 @@ impl DefragByEntry for Vec<DiskEntry> {
             }
         }
 
-        let mut freelist = BTreeMap::new();
+        let mut freelist = Vec::new();
         let mut filelist = Vec::new();
 
         let mut offset = 0;
@@ -74,7 +75,7 @@ impl DefragByEntry for Vec<DiskEntry> {
                     offset += *len;
                 }
                 DiskEntry::Free(len) => {
-                    freelist.insert((*len, offset), Free { len: *len, offset });
+                    freelist.push(Free { len: *len, offset });
                     offset += *len;
                 }
             }
@@ -83,23 +84,31 @@ impl DefragByEntry for Vec<DiskEntry> {
         let mut gaps: Vec<Free> = vec![];
 
         for file in filelist.iter_mut().rev() {
-            let candidate_slot = freelist
-                .range((file.len, usize::MIN)..)
-                .min_by(|(_, x), (_, y)| x.offset.cmp(&y.offset));
+            let candidate_slot = freelist.iter().enumerate()
+                .filter(|(_, x)| x.offset < file.offset)
+		.filter(|(_, free)| free.len >= file.len) 
+                .min_by_key(|(_, x)| x.offset);
 
-            if let Some((_, Free { len, offset })) = candidate_slot {
+            if let Some((index, Free { len, offset })) = candidate_slot {
+		// Turn the place the file is in into a gap of free space.
                 gaps.push(Free {
                     len: file.len,
                     offset: file.offset,
                 });
+		
                 let (mut free_len, mut free_offset) = (*len, *offset);
-                freelist.remove(&(*len, *offset));
+		// Remove from the free list.
+                freelist.swap_remove(index);
+
+		// Relocate file to the leftmost of the free block.
                 file.offset = free_offset;
                 free_len -= file.len;
+
+		// If there's still free space left, add it back to
+		// the free list in its shrunken form.
                 if free_len > 0 {
                     free_offset += file.len;
-                    freelist.insert(
-                        (free_len, free_offset),
+                    freelist.push(
                         Free {
                             len: free_len,
                             offset: free_offset,
@@ -111,12 +120,12 @@ impl DefragByEntry for Vec<DiskEntry> {
 
         // Finally, restructure in terms of the relocations.
         *self = {
+	    // items will be the offset-labeled DiskEntries.
             let mut items: Vec<_> = filelist
                 .into_iter()
                 .map(|f| (f.offset, DiskEntry::from(f)))
                 .chain(
                     freelist
-                        .into_values()
                         .into_iter()
                         .chain(gaps)
                         .map(|free| (free.offset, DiskEntry::from(free))),
@@ -296,13 +305,20 @@ mod tests {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut entries = DiskEntry::parse(&std::io::read_to_string(std::io::stdin())?);
-    let mut diskmap: DiskMap = entries.iter().collect();
-    diskmap.defrag_by_block();
-    println!("Part 1: {}", diskmap.checksum());
+    let data = &std::io::read_to_string(std::io::stdin())?;
 
-    entries.defrag_by_entry();
-    diskmap = entries.iter().collect();
-    println!("Part 2: {}", diskmap.checksum());
+    {
+        let entries = DiskEntry::parse(&data);
+        let mut diskmap: DiskMap = entries.iter().collect();
+        diskmap.defrag_by_block();
+        println!("Part 1: {}", diskmap.checksum());
+    }
+
+    {
+        let mut entries = DiskEntry::parse(&data);
+        entries.defrag_by_entry();
+        let diskmap: DiskMap = entries.iter().collect();
+        println!("Part 2: {}", diskmap.checksum());
+    }
     Ok(())
 }
