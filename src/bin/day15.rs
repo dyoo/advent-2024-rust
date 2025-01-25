@@ -5,9 +5,16 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq)]
 enum Entity {
     Empty,
-    Boulder,
+    Boulder(BoulderShape),
     Wall,
     Player,
+}
+
+#[derive(Debug, PartialEq)]
+enum BoulderShape {
+    Single,
+    WideLeft,
+    WideRight,
 }
 
 impl From<char> for Entity {
@@ -15,7 +22,9 @@ impl From<char> for Entity {
         match ch {
             '#' => Entity::Wall,
             '@' => Entity::Player,
-            'O' => Entity::Boulder,
+            'O' => Entity::Boulder(BoulderShape::Single),
+            '[' => Entity::Boulder(BoulderShape::WideLeft),
+            ']' => Entity::Boulder(BoulderShape::WideRight),
             '.' => Entity::Empty,
             _ => panic!("unexpected ch {:?}", ch),
         }
@@ -27,7 +36,9 @@ impl From<&Entity> for char {
         match entity {
             Entity::Wall => '#',
             Entity::Player => '@',
-            Entity::Boulder => 'O',
+            Entity::Boulder(BoulderShape::Single) => 'O',
+            Entity::Boulder(BoulderShape::WideLeft) => '[',
+            Entity::Boulder(BoulderShape::WideRight) => ']',
             Entity::Empty => '.',
         }
     }
@@ -86,7 +97,23 @@ impl Sokoban {
                 .iter()
                 .flat_map(|(pos, entity)| match entity {
                     Entity::Empty => vec![],
-                    Entity::Boulder => vec![*pos],
+                    Entity::Boulder(shape) => {
+                        if dir.is_horizontal() {
+                            vec![*pos]
+                        } else {
+                            match shape {
+                                BoulderShape::Single => {
+                                    vec![*pos]
+                                }
+                                BoulderShape::WideLeft => {
+                                    vec![*pos, self.tiles.dir_to(*pos, Direction::Right).unwrap()]
+                                }
+                                BoulderShape::WideRight => {
+                                    vec![*pos, self.tiles.dir_to(*pos, Direction::Left).unwrap()]
+                                }
+                            }
+                        }
+                    }
                     Entity::Wall => panic!("impossible"),
                     Entity::Player => vec![*pos],
                 })
@@ -99,7 +126,12 @@ impl Sokoban {
         self.data
             .iter()
             .enumerate()
-            .filter(|(_, entity)| **entity == Entity::Boulder)
+            .filter(|(_, entity)| {
+                matches!(
+                    **entity,
+                    Entity::Boulder(BoulderShape::Single | BoulderShape::WideLeft)
+                )
+            })
             .map(|(pos, _)| {
                 100 * (pos as u32 / self.tiles.width as u32)
                     + (pos as u32 % self.tiles.width as u32)
@@ -176,7 +208,7 @@ mod tests {
                     E::Wall,
                     E::Wall,
                     E::Empty,
-                    E::Boulder,
+                    E::Boulder(BoulderShape::Single),
                     E::Wall,
                     E::Wall,
                     E::Player,
@@ -308,6 +340,91 @@ mod tests {
         #..@OO#...#
         #.........#
         ###########
+"
+            })
+        )?;
+
+        Ok(())
+    }
+
+    #[gtest]
+    fn test_pushing_wide() -> Result<()> {
+        let mut board: Sokoban = indoc! {"
+            ##############
+            ##......##..##
+            ##..........##
+            ##....[][]@.##
+            ##....[]....##
+            ##..........##
+            ##############
+            "
+        }
+        .parse()
+        .into_test_result()?;
+
+        board.forward(Direction::Left);
+
+        verify_that!(
+            format!("{:?}", board),
+            eq(indoc! {"
+            ##############
+            ##......##..##
+            ##..........##
+            ##...[][]@..##
+            ##....[]....##
+            ##..........##
+            ##############
+"
+            })
+        )?;
+
+        board.forward(Direction::Down);
+        board.forward(Direction::Down);
+        board.forward(Direction::Left);
+        board.forward(Direction::Left);
+
+        verify_that!(
+            format!("{:?}", board),
+            eq(indoc! {"
+            ##############
+            ##......##..##
+            ##..........##
+            ##...[][]...##
+            ##....[]....##
+            ##.....@....##
+            ##############
+"
+            })
+        )?;
+
+        board.forward(Direction::Up);
+
+        verify_that!(
+            format!("{:?}", board),
+            eq(indoc! {"
+            ##############
+            ##......##..##
+            ##...[][]...##
+            ##....[]....##
+            ##.....@....##
+            ##..........##
+            ##############
+"
+            })
+        )?;
+
+        board.forward(Direction::Up);
+
+        verify_that!(
+            format!("{:?}", board),
+            eq(indoc! {"
+            ##############
+            ##......##..##
+            ##...[][]...##
+            ##....[]....##
+            ##.....@....##
+            ##..........##
+            ##############
 "
             })
         )?;

@@ -12,6 +12,15 @@ pub enum Direction {
     Down,
 }
 
+impl Direction {
+    pub fn is_horizontal(&self) -> bool {
+        match self {
+            Direction::Left | Direction::Right => true,
+            _ => false,
+        }
+    }
+}
+
 impl TryFrom<char> for Direction {
     type Error = String;
     fn try_from(ch: char) -> Result<Direction, String> {

@@ -20,7 +20,8 @@ fn parse(s: impl AsRef<str>) -> Result<Problem, Box<dyn Error>> {
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(Box::<dyn Error>::from)
                 .and_then(|numbers| {
-                    numbers.first()
+                    numbers
+                        .first()
                         .ok_or(Box::<dyn Error>::from(format!(
                             "lhs missing from {:?}",
                             line
@@ -132,11 +133,7 @@ where
         let result = self.available.pop();
 
         if let Some(parent) = result {
-            let children = self
-                .pending
-                .remove(&parent)
-                .into_iter()
-                .flatten();
+            let children = self.pending.remove(&parent).into_iter().flatten();
             for child in children {
                 let child_count = self.counts.entry(child).or_insert(1);
                 *child_count = child_count.saturating_sub(1);
