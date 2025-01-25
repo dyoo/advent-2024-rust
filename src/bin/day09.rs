@@ -31,10 +31,9 @@ trait DefragByEntry {
 }
 
 impl DefragByEntry for Vec<DiskEntry> {
-
     fn defrag_by_entry(&mut self) {
         // Keep local augmented structures with offset.
-	#[derive(Debug)]
+        #[derive(Debug)]
         struct File {
             id: usize,
             offset: usize,
@@ -49,7 +48,7 @@ impl DefragByEntry for Vec<DiskEntry> {
             }
         }
 
-	#[derive(Debug)]
+        #[derive(Debug)]
         struct Free {
             offset: usize,
             len: usize,
@@ -84,43 +83,43 @@ impl DefragByEntry for Vec<DiskEntry> {
         let mut gaps: Vec<Free> = vec![];
 
         for file in filelist.iter_mut().rev() {
-            let candidate_slot = freelist.iter().enumerate()
+            let candidate_slot = freelist
+                .iter()
+                .enumerate()
                 .filter(|(_, x)| x.offset < file.offset)
-		.filter(|(_, free)| free.len >= file.len) 
+                .filter(|(_, free)| free.len >= file.len)
                 .min_by_key(|(_, x)| x.offset);
 
             if let Some((index, Free { len, offset })) = candidate_slot {
-		// Turn the place the file is in into a gap of free space.
+                // Turn the place the file is in into a gap of free space.
                 gaps.push(Free {
                     len: file.len,
                     offset: file.offset,
                 });
-		
+
                 let (mut free_len, mut free_offset) = (*len, *offset);
-		// Remove from the free list.
+                // Remove from the free list.
                 freelist.swap_remove(index);
 
-		// Relocate file to the leftmost of the free block.
+                // Relocate file to the leftmost of the free block.
                 file.offset = free_offset;
                 free_len -= file.len;
 
-		// If there's still free space left, add it back to
-		// the free list in its shrunken form.
+                // If there's still free space left, add it back to
+                // the free list in its shrunken form.
                 if free_len > 0 {
                     free_offset += file.len;
-                    freelist.push(
-                        Free {
-                            len: free_len,
-                            offset: free_offset,
-                        },
-                    );
+                    freelist.push(Free {
+                        len: free_len,
+                        offset: free_offset,
+                    });
                 }
             }
         }
 
         // Finally, restructure in terms of the relocations.
         *self = {
-	    // items will be the offset-labeled DiskEntries.
+            // items will be the offset-labeled DiskEntries.
             let mut items: Vec<_> = filelist
                 .into_iter()
                 .map(|f| (f.offset, DiskEntry::from(f)))
@@ -305,7 +304,7 @@ mod tests {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let data = &std::io::read_to_string(std::io::stdin())?;
+    let data = std::io::read_to_string(std::io::stdin())?;
 
     {
         let entries = DiskEntry::parse(&data);

@@ -199,7 +199,7 @@ fn part_1(problem: &[Equation]) -> u64 {
     problem
         .par_iter()
         .filter(|e| e.is_valid())
-        .map(|e| u64::from(e.test_value))
+        .map(|e| e.test_value)
         .sum()
 }
 
@@ -207,7 +207,7 @@ fn part_2(problem: &[Equation]) -> u64 {
     problem
         .par_iter()
         .filter(|e| e.is_valid2())
-        .map(|e| u64::from(e.test_value))
+        .map(|e| e.test_value)
         .sum()
 }
 

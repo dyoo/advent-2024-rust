@@ -14,10 +14,7 @@ enum Instruction {
 
 impl Instruction {
     fn is_mul(&self) -> bool {
-        match self {
-            Instruction::Mul { .. } => true,
-            _ => false,
-        }
+        matches!(self, Instruction::Mul { .. })
     }
 }
 

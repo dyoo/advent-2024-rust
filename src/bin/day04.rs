@@ -47,7 +47,7 @@ struct Streak<'a> {
     exhausted: bool,
 }
 
-impl<'a> Iterator for Streak<'a> {
+impl Iterator for Streak<'_> {
     type Item = char;
     fn next(&mut self) -> Option<Self::Item> {
         if self.exhausted {

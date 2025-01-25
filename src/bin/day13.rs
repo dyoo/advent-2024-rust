@@ -1,3 +1,5 @@
+#![allow(clippy::comparison_chain)]
+
 use std::cmp::{Ord, PartialOrd, Reverse};
 use std::collections::BinaryHeap;
 use std::error::Error;
