@@ -82,7 +82,15 @@ impl Sokoban {
             }
 
             // Otherwise, set up the border with the boulders, and loop.
-            border = next_border.iter().map(|(pos, _)| *pos).collect();
+            border = next_border
+                .iter()
+                .flat_map(|(pos, entity)| match entity {
+                    Entity::Empty => vec![],
+                    Entity::Boulder => vec![*pos],
+                    Entity::Wall => panic!("impossible"),
+                    Entity::Player => vec![*pos],
+                })
+                .collect();
             to_move.extend(border.iter());
         }
     }
