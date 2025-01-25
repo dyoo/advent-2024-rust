@@ -12,6 +12,19 @@ pub enum Direction {
     Down,
 }
 
+impl TryFrom<char> for Direction {
+    type Error = String;
+    fn try_from(ch: char) -> Result<Direction, String> {
+        match ch {
+            '<' => Ok(Direction::Left),
+            '>' => Ok(Direction::Right),
+            '^' => Ok(Direction::Up),
+            'v' => Ok(Direction::Down),
+            _ => Err(format!("Unknown direction: {:?}", ch)),
+        }
+    }
+}
+
 impl TileIndex {
     pub fn dir_to(&self, index: usize, dir: Direction) -> Option<usize> {
         match dir {

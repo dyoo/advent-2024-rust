@@ -1,16 +1,6 @@
 use advent_2024::{Direction, TileIndex};
 use std::str::FromStr;
 
-fn parse_direction(ch: char) -> Result<Direction, String> {
-    match ch {
-        '<' => Ok(Direction::Left),
-        '>' => Ok(Direction::Right),
-        '^' => Ok(Direction::Up),
-        'V' => Ok(Direction::Down),
-        _ => Err(format!("Unknown direction: {:?}", ch)),
-    }
-}
-
 #[derive(Debug, PartialEq)]
 enum Entity {
     Empty,
@@ -78,7 +68,9 @@ impl Sokoban {
                         Entity::Wall => {
                             return;
                         }
-                        Entity::Boulder => {}
+                        Entity::Boulder => {
+                            // Being pushed as well.
+                        }
                         Entity::Player => {
                             panic!("Ran into self?");
                         }
@@ -90,6 +82,19 @@ impl Sokoban {
                 panic!("Ran into self?");
             }
         }
+    }
+
+    fn score(&self) -> u32 {
+        let mut score = 0;
+        self.data
+            .iter()
+            .enumerate()
+            .filter(|(_, entity)| **entity == Entity::Boulder)
+            .map(|(pos, _)| {
+                100 * (pos as u32 / self.tiles.width as u32)
+                    + (pos as u32 % self.tiles.width as u32)
+            })
+            .sum()
     }
 }
 
@@ -299,6 +304,87 @@ mod tests {
 
         Ok(())
     }
+
+    #[gtest]
+    fn test_small_example() -> Result<()> {
+        let data = indoc! {"
+########
+#..O.O.#
+##@.O..#
+#...O..#
+#.#.O..#
+#...O..#
+#......#
+########
+
+<^^>>>vv<v>>v<<
+"
+        };
+        let (mut sokoban, directions) = parse_problem(data);
+        for direction in directions {
+            sokoban.forward(direction);
+        }
+
+        verify_that!(sokoban.score(), eq(2028))
+    }
+
+    #[gtest]
+    fn test_large_example() -> Result<()> {
+        let data = indoc! {"
+##########
+#..O..O.O#
+#......O.#
+#.OO..O.O#
+#..O@..O.#
+#O#..O...#
+#O..O..O.#
+#.OO.O.OO#
+#....O...#
+##########
+
+<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
+vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
+><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<
+<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^
+^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><
+^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^
+>^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^
+<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>
+^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>
+v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
+"
+        };
+        let (mut sokoban, directions) = parse_problem(data);
+        for direction in directions {
+            sokoban.forward(direction);
+        }
+
+        verify_that!(sokoban.score(), eq(10092))
+    }
 }
 
-fn main() {}
+fn parse_problem(s: &str) -> (Sokoban, Vec<Direction>) {
+    let mut items = s.split("\n\n");
+    let sokoban: Sokoban = items.next().expect("map").trim().parse().unwrap();
+    let directions: Vec<Direction> = items
+        .next()
+        .expect("directions")
+        .trim()
+        .chars()
+        .filter(|ch| !ch.is_ascii_whitespace())
+        .map(|ch| Direction::try_from(ch).expect("Directions"))
+        .collect();
+    (sokoban, directions)
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let data = std::io::read_to_string(std::io::stdin())?;
+    let (mut sokoban, directions) = parse_problem(&data);
+    for direction in directions {
+        sokoban.forward(direction);
+    }
+
+    println!("Part 1: {}", sokoban.score());
+
+    Ok(())
+}
