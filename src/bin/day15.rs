@@ -41,46 +41,47 @@ struct Sokoban {
 
 impl Sokoban {
     fn forward(&mut self, dir: Direction) {
-        let Some(to) = self.tiles.dir_to(self.player_pos, dir) else {
-            return;
-        };
+        let mut to_move: Vec<usize> = vec![self.player_pos];
+        let mut border: Vec<usize> = vec![self.player_pos];
 
-        match self.data[to] {
-            Entity::Empty => {
-                self.data.swap(self.player_pos, to);
-                self.player_pos = to;
+        loop {
+            // Find the next border (and if we fall off, fail)
+            let Some(next_border) = border
+                .iter()
+                .map(|pos| {
+                    self.tiles
+                        .dir_to(*pos, dir)
+                        .map(|pos| (pos, &self.data[pos]))
+                })
+                .collect::<Option<Vec<(usize, &Entity)>>>()
+            else {
+                return;
+            };
+
+            // Give up if any of them are walls.
+            if next_border
+                .iter()
+                .any(|(_, entity)| matches!(entity, Entity::Wall))
+            {
+                return;
             }
-            Entity::Wall => {}
-            Entity::Boulder => {
-                let mut vacancy_candidate = to;
-                loop {
-                    let Some(next_candidate) = self.tiles.dir_to(vacancy_candidate, dir) else {
-                        return;
-                    };
-                    match self.data[next_candidate] {
-                        Entity::Empty => {
-                            self.data[next_candidate] = Entity::Boulder;
-                            self.data[self.player_pos] = Entity::Empty;
-                            self.data[to] = Entity::Player;
-                            self.player_pos = to;
-                            return;
-                        }
-                        Entity::Wall => {
-                            return;
-                        }
-                        Entity::Boulder => {
-                            // Being pushed as well.
-                        }
-                        Entity::Player => {
-                            panic!("Ran into self?");
-                        }
-                    }
-                    vacancy_candidate = next_candidate;
+
+            // Push if all of them are empty
+            if next_border
+                .iter()
+                .all(|(_, entity)| matches!(entity, Entity::Empty))
+            {
+                for pos in to_move.into_iter().rev() {
+                    self.data.swap(pos, self.tiles.dir_to(pos, dir).unwrap());
                 }
+
+                self.player_pos = self.tiles.dir_to(self.player_pos, dir).unwrap();
+                return;
             }
-            Entity::Player => {
-                panic!("Ran into self?");
-            }
+
+            // Otherwise, set up the border with the boulders, and loop.
+            to_move.extend(next_border.iter().map(|(pos, _)| *pos));
+            border = next_border.iter().map(|(pos, _)| *pos).collect();
         }
     }
 
