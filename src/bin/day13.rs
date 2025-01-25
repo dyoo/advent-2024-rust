@@ -262,7 +262,7 @@ fn part_1(
     solver: impl Fn(&Point, &Point, &Point) -> Option<i64>,
 ) -> i64 {
     claws
-        .into_iter()
+        .iter()
         .filter_map(|(a, b, prize)| solver(a, b, prize))
         .sum()
 }
@@ -272,7 +272,7 @@ fn part_2(
     solver: impl Fn(&Point, &Point, &Point) -> Option<i64>,
 ) -> i64 {
     claws
-        .into_iter()
+        .iter()
         .map(|(a, b, prize)| {
             (
                 a,

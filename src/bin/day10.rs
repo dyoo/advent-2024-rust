@@ -11,7 +11,7 @@ impl FieldMap {
         let data: Vec<_> = s
             .trim()
             .lines()
-            .flat_map(|l| l.chars().map(|ch| ch as u8 - '0' as u8))
+            .flat_map(|l| l.chars().map(|ch| ch as u8 - b'0'))
             .collect();
         let height = s.trim().lines().count();
         let width = data.len() / height;
@@ -41,7 +41,6 @@ impl FieldMap {
 
     fn neighbors(&self, i: usize) -> impl Iterator<Item = usize> + '_ {
         self.directional_neighbors(i)
-            .into_iter()
             .filter(move |j| self.data[i] + 1 == self.data[*j])
     }
 
@@ -78,7 +77,6 @@ impl FieldMap {
         let mut visited = Vec::from(visited);
         visited[index] = true;
         self.neighbors(index)
-            .into_iter()
             .filter(|neighbor| !visited[*neighbor])
             .map(|neighbor| self.count_paths_to_9(neighbor, &visited))
             .sum()

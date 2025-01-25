@@ -17,7 +17,7 @@ impl Equation {
 }
 
 fn is_valid(test_val: u64, args: &[u64]) -> bool {
-    if args.len() == 0 {
+    if args.is_empty() {
         return false;
     } else if args.len() == 1 {
         return test_val == args[0];
@@ -37,7 +37,7 @@ fn is_valid(test_val: u64, args: &[u64]) -> bool {
 }
 
 fn is_valid2(test_val: u64, args: &[u64]) -> bool {
-    if args.len() == 0 {
+    if args.is_empty() {
         return false;
     } else if args.len() == 1 {
         return test_val == args[0];

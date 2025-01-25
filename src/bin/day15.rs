@@ -85,7 +85,6 @@ impl Sokoban {
     }
 
     fn score(&self) -> u32 {
-        let mut score = 0;
         self.data
             .iter()
             .enumerate()
@@ -132,11 +131,11 @@ impl std::fmt::Debug for Sokoban {
 
         for i in 0..self.data.len() {
             if i != 0 && i % self.tiles.width == 0 {
-                write!(formatter, "\n")?;
+                writeln!(formatter)?;
             }
             write!(formatter, "{}", char::from(&self.data[i]))?;
         }
-        write!(formatter, "\n")?;
+        writeln!(formatter)?;
         Ok(())
     }
 }

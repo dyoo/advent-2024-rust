@@ -16,7 +16,7 @@ fn is_safe(row: &[u32]) -> bool {
     (all_pairwise(row, |x, y| x > y) || all_pairwise(row, |x, y| x < y))
         && all_pairwise(row, |x, y| {
             let diff = x.abs_diff(y);
-            diff >= 1 && diff <= 3
+            (1..=3).contains(&diff)
         })
 }
 

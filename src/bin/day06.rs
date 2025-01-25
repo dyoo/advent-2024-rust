@@ -168,7 +168,7 @@ struct Stepper<'a> {
     height: u32,
 }
 
-impl<'a> Stepper<'a> {
+impl Stepper<'_> {
     fn peek(&mut self) -> Option<Player> {
         if self.exhausted {
             return None;
@@ -195,7 +195,7 @@ impl<'a> Stepper<'a> {
     }
 }
 
-impl<'a> Iterator for Stepper<'a> {
+impl Iterator for Stepper<'_> {
     type Item = Player;
 
     fn next(&mut self) -> Option<Player> {

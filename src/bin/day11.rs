@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = std::io::read_to_string(std::io::stdin())?;
 
     {
-        let mut values: Vec<u64> = parse(&input).collect::<Result<Vec<_>, _>>()?.into();
+        let mut values: Vec<u64> = parse(&input).collect::<Result<Vec<_>, _>>()?;
         for _ in 0..25 {
             values = blink_all(values);
         }

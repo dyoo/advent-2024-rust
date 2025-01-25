@@ -139,8 +139,8 @@ fn visualize(robots: &[Robot], width: usize, height: usize) -> bool {
 
     let mut possible_match = false;
     for line in buffer.iter() {
-        let line = line.into_iter().collect::<String>();
-        if line.find("*************").is_some() {
+        let line = line.iter().collect::<String>();
+        if line.contains("*************") {
             possible_match = true;
         }
     }
@@ -149,7 +149,7 @@ fn visualize(robots: &[Robot], width: usize, height: usize) -> bool {
         return false;
     }
     for line in buffer.iter() {
-        let line = line.into_iter().collect::<String>();
+        let line = line.iter().collect::<String>();
         println!("{}", line);
     }
     true

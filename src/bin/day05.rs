@@ -18,10 +18,9 @@ fn parse(s: impl AsRef<str>) -> Result<Problem, Box<dyn Error>> {
             line.split("|")
                 .map(str::parse::<u32>)
                 .collect::<Result<Vec<_>, _>>()
-                .map_err(|err| Box::<dyn Error>::from(err))
+                .map_err(Box::<dyn Error>::from)
                 .and_then(|numbers| {
-                    numbers
-                        .get(0)
+                    numbers.first()
                         .ok_or(Box::<dyn Error>::from(format!(
                             "lhs missing from {:?}",
                             line
@@ -47,7 +46,7 @@ fn parse(s: impl AsRef<str>) -> Result<Problem, Box<dyn Error>> {
             line.split(",")
                 .map(str::parse::<u32>)
                 .collect::<Result<Vec<_>, _>>()
-                .map_err(|err| Box::<dyn Error>::from(err))
+                .map_err(Box::<dyn Error>::from)
         })
         .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
     Ok(Problem { orderings, numbers })
@@ -62,7 +61,7 @@ fn filter_correct_numbers(p: &Problem) -> Vec<&Vec<u32>> {
             {
                 let seen_in_numbers: HashSet<u32> = numbers.iter().copied().collect();
                 for (parent, child) in p.orderings.iter() {
-                    if seen_in_numbers.contains(&parent) && seen_in_numbers.contains(&child) {
+                    if seen_in_numbers.contains(parent) && seen_in_numbers.contains(child) {
                         rules.entry(*child).or_default().insert(*parent);
                     }
                 }
@@ -137,7 +136,7 @@ where
                 .pending
                 .remove(&parent)
                 .into_iter()
-                .flat_map(|children| children);
+                .flatten();
             for child in children {
                 let child_count = self.counts.entry(child).or_insert(1);
                 *child_count = child_count.saturating_sub(1);

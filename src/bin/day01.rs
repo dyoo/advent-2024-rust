@@ -50,8 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .map(|s| s.parse::<u32>())
             .collect::<Result<Vec<u32>, _>>()?;
         lhs.push(
-            numbers
-                .get(0)
+            numbers.first()
                 .copied()
                 .ok_or_else(|| format!("Missing lhs on line {}", lineno))?,
         );

@@ -30,7 +30,7 @@ impl<T: PartialEq + Copy> Plot<T> {
         let mut visited = vec![false; self.data.len()];
         let mut last_unvisited = visited.len();
         loop {
-            let Some(index) = (&visited[..last_unvisited]).into_iter().rposition(|x| !*x) else {
+            let Some(index) = visited[..last_unvisited].iter().rposition(|x| !*x) else {
                 break;
             };
             last_unvisited = index;
@@ -114,7 +114,7 @@ impl<T: PartialEq + Copy> Plot<T> {
             })
             .collect_regions()
             .into_iter()
-            .filter(|r| r.name == true)
+            .filter(|r| r.name)
             .count()
         })
         .sum()
