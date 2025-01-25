@@ -1,4 +1,5 @@
 use advent_2024::{Direction, TileIndex};
+use std::collections::HashSet;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
@@ -42,7 +43,8 @@ struct Sokoban {
 impl Sokoban {
     fn forward(&mut self, dir: Direction) {
         let mut to_move: Vec<usize> = vec![self.player_pos];
-        let mut border: Vec<usize> = vec![self.player_pos];
+        let mut border: HashSet<usize> = HashSet::new();
+        border.insert(self.player_pos);
 
         loop {
             // Find the next border (and if we fall off, fail)
@@ -80,8 +82,8 @@ impl Sokoban {
             }
 
             // Otherwise, set up the border with the boulders, and loop.
-            to_move.extend(next_border.iter().map(|(pos, _)| *pos));
             border = next_border.iter().map(|(pos, _)| *pos).collect();
+            to_move.extend(border.iter());
         }
     }
 
