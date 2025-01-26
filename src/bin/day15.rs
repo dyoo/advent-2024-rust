@@ -44,7 +44,7 @@ impl From<&Entity> for char {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 struct Sokoban {
     data: Vec<Entity>,
     tiles: TileIndex,
@@ -167,7 +167,7 @@ impl FromStr for Sokoban {
     }
 }
 
-impl std::fmt::Debug for Sokoban {
+impl std::fmt::Display for Sokoban {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         if self.data[self.player_pos] != Entity::Player {
             write!(
@@ -247,7 +247,7 @@ mod tests {
         board.forward(Direction::Right);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
         ####
         #.@#
@@ -260,7 +260,7 @@ mod tests {
         board.forward(Direction::Down);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
         ####
         #..#
@@ -273,7 +273,7 @@ mod tests {
         board.forward(Direction::Left);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
         ####
         #..#
@@ -286,7 +286,7 @@ mod tests {
         board.forward(Direction::Up);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
         ####
         #@.#
@@ -313,7 +313,7 @@ mod tests {
         board.forward(Direction::Right);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
         ###########
         #.@OO.#...#
@@ -326,7 +326,7 @@ mod tests {
         board.forward(Direction::Right);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
         ###########
         #..@OO#...#
@@ -339,7 +339,7 @@ mod tests {
         board.forward(Direction::Right);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
         ###########
         #..@OO#...#
@@ -370,7 +370,7 @@ mod tests {
         board.forward(Direction::Left);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
             ##############
             ##......##..##
@@ -389,7 +389,7 @@ mod tests {
         board.forward(Direction::Left);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
             ##############
             ##......##..##
@@ -405,7 +405,7 @@ mod tests {
         board.forward(Direction::Up);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
             ##############
             ##......##..##
@@ -421,7 +421,7 @@ mod tests {
         board.forward(Direction::Up);
 
         verify_that!(
-            format!("{:?}", board),
+            format!("{}", board),
             eq(indoc! {"
             ##############
             ##......##..##
@@ -452,7 +452,7 @@ mod tests {
 <^^>>>vv<v>>v<<
 "
         };
-        let (mut sokoban, directions) = parse_problem(data);
+        let (mut sokoban, directions) = parse_part_1_problem(data);
         for direction in directions {
             sokoban.forward(direction);
         }
@@ -486,7 +486,7 @@ vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
 v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
 "
         };
-        let (mut sokoban, directions) = parse_problem(data);
+        let (mut sokoban, directions) = parse_part_1_problem(data);
         for direction in directions {
             sokoban.forward(direction);
         }
