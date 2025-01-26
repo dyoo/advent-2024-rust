@@ -1,5 +1,4 @@
 use advent_2024::{Direction, TileIndex};
-use std::cmp::min;
 use std::collections::HashSet;
 use std::str::FromStr;
 
@@ -135,10 +134,7 @@ impl Sokoban {
                 Entity::Boulder(BoulderShape::WideLeft) => {
                     let row = pos as u32 / self.tiles.width as u32;
                     let col = pos as u32 % self.tiles.width as u32;
-                    let result = Some(
-                        100 * min(row, self.tiles.height as u32 - row - 1)
-                            + min(col, self.tiles.width as u32 - col - 2),
-                    );
+                    let result = Some(100 * row + col);
                     result
                 }
                 _ => None,
@@ -526,7 +522,7 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
 "}
         .parse()
         .into_test_result()?;
-        verify_that!(board.score(), eq(103))?;
+        verify_that!(board.score(), eq(105))?;
 
         let board: Sokoban = indoc! {"
         ##########
@@ -536,7 +532,7 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
 "}
         .parse()
         .into_test_result()?;
-        verify_that!(board.score(), eq(103))?;
+        verify_that!(board.score(), eq(205))?;
 
         let board: Sokoban = indoc! {"
         ##########
@@ -550,7 +546,7 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
 "}
         .parse()
         .into_test_result()?;
-        verify_that!(board.score(), eq(103))?;
+        verify_that!(board.score(), eq(605))?;
 
         Ok(())
     }
@@ -650,15 +646,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for direction in directions {
         sokoban.forward(direction);
     }
-    println!("{}", sokoban);
     println!("Part 1: {}", sokoban.score());
 
     let (mut sokoban, directions) = parse_part_2_problem(&data);
-    println!("{}", sokoban);
     for direction in directions {
         sokoban.forward(direction);
     }
-    println!("{}", sokoban);
     println!("Part 2: {}", sokoban.score());
 
     Ok(())
