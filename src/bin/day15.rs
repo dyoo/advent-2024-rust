@@ -495,28 +495,60 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
     }
 }
 
-fn parse_problem(s: &str) -> (Sokoban, Vec<Direction>) {
-    let mut items = s.split("\n\n");
-    let sokoban: Sokoban = items.next().expect("map").trim().parse().unwrap();
-    let directions: Vec<Direction> = items
-        .next()
-        .expect("directions")
-        .trim()
+fn parse_directions(s: &str) -> Vec<Direction> {
+    s.trim()
         .chars()
         .filter(|ch| !ch.is_ascii_whitespace())
         .map(|ch| Direction::try_from(ch).expect("Directions"))
-        .collect();
+        .collect()
+}
+
+fn parse_part_1_problem(s: &str) -> (Sokoban, Vec<Direction>) {
+    let mut items = s.split("\n\n");
+    let sokoban: Sokoban = items.next().expect("map").trim().parse().unwrap();
+    let directions: Vec<Direction> = parse_directions(items.next().expect("directions").trim());
+    (sokoban, directions)
+}
+
+/// This handles the map expansion for part 2.
+fn widen_map(s: &str) -> String {
+    s.chars()
+        .flat_map(|ch| match ch {
+            '#' => vec!['#', '#'],
+            'O' => vec!['[', ']'],
+            '.' => vec!['.', '.'],
+            '@' => vec!['@', '.'],
+            _ => vec![ch],
+        })
+        .collect()
+}
+
+fn parse_part_2_problem(s: &str) -> (Sokoban, Vec<Direction>) {
+    let mut items = s.split("\n\n");
+    let sokoban: Sokoban = widen_map(items.next().expect("map").trim())
+        .parse()
+        .unwrap();
+    let directions: Vec<Direction> = parse_directions(items.next().expect("directions").trim());
     (sokoban, directions)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let data = std::io::read_to_string(std::io::stdin())?;
-    let (mut sokoban, directions) = parse_problem(&data);
+    let (mut sokoban, directions) = parse_part_1_problem(&data);
     for direction in directions {
         sokoban.forward(direction);
     }
-
+    println!("{}", sokoban);
     println!("Part 1: {}", sokoban.score());
 
+
+    let (mut sokoban, directions) = parse_part_2_problem(&data);
+    for direction in directions {
+        sokoban.forward(direction);
+    }
+    println!("{}", sokoban);
+    println!("Part 2: {}", sokoban.score());
+    
+    
     Ok(())
 }
