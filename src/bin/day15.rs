@@ -497,6 +497,65 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
     }
 
     #[gtest]
+    fn test_score_wide() -> Result<()> {
+        let board: Sokoban = indoc! {"
+        ##########
+        #@.[]....#
+        #........#
+        ##########
+"}
+        .parse()
+        .into_test_result()?;
+        verify_that!(board.score(), eq(103))?;
+
+        let board: Sokoban = indoc! {"
+        ##########
+        #@..[]...#
+        #........#
+        ##########
+"}
+        .parse()
+        .into_test_result()?;
+        verify_that!(board.score(), eq(104))?;
+
+        let board: Sokoban = indoc! {"
+        ##########
+        #@...[]..#
+        #........#
+        ##########
+"}
+        .parse()
+        .into_test_result()?;
+        verify_that!(board.score(), eq(103))?;
+
+        let board: Sokoban = indoc! {"
+        ##########
+        #@.......#
+        #....[]..#
+        ##########
+"}
+        .parse()
+        .into_test_result()?;
+        verify_that!(board.score(), eq(103))?;
+
+        let board: Sokoban = indoc! {"
+        ##########
+        #@.......#
+        #........#
+        #........#
+        #........#
+        #........#
+        #....[]..#
+        ##########
+"}
+        .parse()
+        .into_test_result()?;
+        verify_that!(board.score(), eq(103))?;
+
+        Ok(())
+    }
+
+    #[gtest]
     fn test_large_example_scaled() -> Result<()> {
         let data = indoc! {"
 ##########
