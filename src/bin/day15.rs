@@ -126,15 +126,20 @@ impl Sokoban {
         self.data
             .iter()
             .enumerate()
-            .filter(|(_, entity)| {
-                matches!(
-                    **entity,
-                    Entity::Boulder(BoulderShape::Single | BoulderShape::WideLeft)
-                )
-            })
-            .map(|(pos, _)| {
-                100 * (pos as u32 / self.tiles.width as u32)
-                    + (pos as u32 % self.tiles.width as u32)
+            .filter_map(|(pos, entity)| match entity {
+                Entity::Boulder(BoulderShape::Single) => Some(
+                    100 * (pos as u32 / self.tiles.width as u32)
+                        + (pos as u32 % self.tiles.width as u32),
+                ),
+                Entity::Boulder(BoulderShape::WideLeft) => {
+                    // TODO: find the closest edges
+                    let result = Some(
+                        100 * (pos as u32 / self.tiles.width as u32)
+                            + (pos as u32 % self.tiles.width as u32),
+                    );
+                    result
+                }
+                _ => None,
             })
             .sum()
     }
