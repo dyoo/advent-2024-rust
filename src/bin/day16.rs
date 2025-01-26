@@ -42,6 +42,73 @@ fn search(maze: &Maze, start: &PlayerState) -> Option<u32> {
     None
 }
 
+/// Find number of unique titles finding the shortest path.
+fn search2(maze: &Maze, start: &PlayerState) -> Option<u32> {
+    // Do an initial search to bound how far we consider solutions.  I
+    // know we can do this in-place, but this seems simple enough.
+    let Some(min_score) = search(maze, start) else {
+        return None;
+    };
+
+    #[derive(Debug, PartialEq, Eq, Clone, Ord, PartialOrd, Hash)]
+    struct AugmentedPlayerState {
+        player: PlayerState,
+        breadcrumb: Box<[usize]>,
+    }
+
+    let mut heap: BinaryHeap<Reverse<(u32, AugmentedPlayerState)>> = BinaryHeap::new();
+    let mut visited: HashSet<PlayerState> = HashSet::new();
+    heap.push(Reverse((
+        0,
+        AugmentedPlayerState {
+            player: start.clone(),
+            breadcrumb: vec![start.pos].into(),
+        },
+    )));
+
+    let mut solution_paths: HashSet<usize> = HashSet::new();
+
+    while let Some(Reverse((score, AugmentedPlayerState { player, breadcrumb }))) = heap.pop() {
+        if visited.contains(&player) || score > min_score {
+            continue;
+        }
+        visited.insert(player.clone());
+
+        if player.pos == maze.goal {
+            solution_paths.extend(breadcrumb.clone());
+            continue;
+        }
+
+        if let Some(p) = player.forward(maze) {
+            let mut new_breadcrumb = Vec::from(breadcrumb.clone());
+            new_breadcrumb.push(p.pos);
+            heap.push(Reverse((
+                score + 1,
+                AugmentedPlayerState {
+                    player: p,
+                    breadcrumb: new_breadcrumb.into(),
+                },
+            )));
+        }
+        heap.push(Reverse((
+            score + 1000,
+            AugmentedPlayerState {
+                player: player.clock(),
+                breadcrumb: breadcrumb.clone(),
+            },
+        )));
+        heap.push(Reverse((
+            score + 1000,
+            AugmentedPlayerState {
+                player: player.counterclock(),
+                breadcrumb,
+            },
+        )));
+    }
+
+    Some(solution_paths.len() as u32)
+}
+
 fn parse(s: &str) -> (Maze, PlayerState) {
     let lines = s.trim().lines();
     let chars = lines.clone().flat_map(|line| line.trim().chars());
@@ -149,5 +216,11 @@ mod tests {
     fn test_search() -> Result<()> {
         let (maze, player) = parse(data);
         verify_that!(search(&maze, &player), some(eq(7036)))
+    }
+
+    #[gtest]
+    fn test_search2() -> Result<()> {
+        let (maze, player) = parse(data);
+        verify_that!(search2(&maze, &player), some(eq(45)))
     }
 }
