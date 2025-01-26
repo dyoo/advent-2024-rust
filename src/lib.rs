@@ -1,10 +1,10 @@
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct TileIndex {
     pub width: usize,
     pub height: usize,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy, PartialOrd, Ord, Hash)]
 pub enum Direction {
     Left,
     Right,
