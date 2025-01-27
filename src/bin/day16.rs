@@ -2,6 +2,7 @@ use advent_2024::{Direction, TileIndex};
 use std::cmp::Ordering;
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -51,10 +52,12 @@ fn search2(maze: &Maze, start: &PlayerState) -> Option<u32> {
         return None;
     };
 
+    let mut visited: HashMap<PlayerState, u32> = HashMap::new();
+
     #[derive(Debug, PartialEq, Eq, Clone)]
     struct AugmentedPlayerState {
         player: PlayerState,
-        breadcrumb: HashSet<PlayerState>,
+        breadcrumb: HashSet<usize>,
     }
 
     impl Ord for AugmentedPlayerState {
@@ -74,7 +77,7 @@ fn search2(maze: &Maze, start: &PlayerState) -> Option<u32> {
         0,
         AugmentedPlayerState {
             player: start.clone(),
-            breadcrumb: [start.clone()].into_iter().collect(),
+            breadcrumb: [start.pos].into_iter().collect(),
         },
     )));
 
@@ -84,47 +87,47 @@ fn search2(maze: &Maze, start: &PlayerState) -> Option<u32> {
         if score > min_score {
             continue;
         }
+        // Check to see if we've been here before at shorter cost.
+        let visited_entry = visited.entry(player.clone());
+        if *visited_entry.or_insert(u32::MAX) < score {
+            continue;
+        }
+        visited.insert(player.clone(), score);
 
         if player.pos == maze.goal {
-            solution_paths.extend(breadcrumb.iter().map(|p| p.pos));
+            solution_paths.extend(breadcrumb);
             continue;
         }
 
         if let Some(p) = player.forward(maze) {
-            if !breadcrumb.contains(&p) {
-                let mut breadcrumb = breadcrumb.clone();
-                breadcrumb.insert(p.clone());
-                heap.push(Reverse((
-                    score + 1,
-                    AugmentedPlayerState {
-                        player: p,
-                        breadcrumb,
-                    },
-                )));
-            }
-        }
-
-        let player_clock = player.clock();
-        if !breadcrumb.contains(&player_clock) {
+            let mut breadcrumb = breadcrumb.clone();
+            breadcrumb.insert(p.pos);
             heap.push(Reverse((
-                score + 1000,
+                score + 1,
                 AugmentedPlayerState {
-                    player: player_clock,
-                    breadcrumb: breadcrumb.clone(),
-                },
-            )));
-        }
-
-        let player_counterclock = player.counterclock();
-        if !breadcrumb.contains(&player_counterclock) {
-            heap.push(Reverse((
-                score + 1000,
-                AugmentedPlayerState {
-                    player: player_counterclock,
+                    player: p,
                     breadcrumb,
                 },
             )));
         }
+
+        let player_clock = player.clock();
+        heap.push(Reverse((
+            score + 1000,
+            AugmentedPlayerState {
+                player: player_clock,
+                breadcrumb: breadcrumb.clone(),
+            },
+        )));
+
+        let player_counterclock = player.counterclock();
+        heap.push(Reverse((
+            score + 1000,
+            AugmentedPlayerState {
+                player: player_counterclock,
+                breadcrumb,
+            },
+        )));
     }
 
     Some(solution_paths.len() as u32)
