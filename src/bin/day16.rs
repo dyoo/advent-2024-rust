@@ -201,7 +201,7 @@ mod tests {
     use super::*;
     use googletest::prelude::*;
 
-    const data: &str = "
+    const DATA: &str = "
 ###############
 #.......#....E#
 #.#.###.#.###.#
@@ -239,13 +239,13 @@ mod tests {
 
     #[gtest]
     fn test_search() -> Result<()> {
-        let (maze, player) = parse(data);
+        let (maze, player) = parse(DATA);
         verify_that!(search(&maze, &player), some(eq(7036)))
     }
 
     #[gtest]
     fn test_search2() -> Result<()> {
-        let (maze, player) = parse(data);
+        let (maze, player) = parse(DATA);
         verify_that!(search2(&maze, &player), some(eq(45)))
     }
 }
