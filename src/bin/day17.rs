@@ -4,11 +4,31 @@ struct Register {
     value: u32,
 }
 
+#[derive(Debug, PartialEq)]
+struct Machine {
+    a: u32,
+    b: u32,
+    c: u32,
+    program: Box<[u8]>,
+    counter: usize,
+}
+
+impl Machine {
+    fn adv(&mut self) {}
+    fn bxl(&mut self) {}
+    fn bst(&mut self) {}
+    fn jnz(&mut self) {}
+    fn bxc(&mut self) {}
+    fn out(&mut self) {}
+    fn bdv(&mut self) {}
+    fn cdv(&mut self) {}
+}
+
 mod parser {
     use super::*;
     use nom::bytes::complete::tag;
     use nom::character::complete::{alpha1, line_ending, u32, u8};
-    use nom::multi::{many1, separated_list0};
+    use nom::multi::{separated_list0};
     use nom::sequence::terminated;
     use nom::IResult;
 
@@ -32,11 +52,24 @@ mod parser {
         Ok((input, vs.into()))
     }
 
-    fn parse_input(input: &str) -> IResult<&str, (Box<[Register]>, Box<[u8]>)> {
-        let (input, registers) = many1(terminated(parse_register, line_ending))(input)?;
+    fn parse_machine(input: &str) -> IResult<&str, Machine> {
+        let (input, register_a) = terminated(parse_register, line_ending)(input)?;
+        // TODO: see how to build our own parse error if this isn't named "A".
+        let (input, register_b) = terminated(parse_register, line_ending)(input)?;
+        let (input, register_c) = terminated(parse_register, line_ending)(input)?;
+        
         let (input, _) = line_ending(input)?;
         let (input, instructions) = parse_program(input)?;
-        Ok((input, (registers.into(), instructions)))
+        Ok((
+            input,
+            Machine {
+                a: register_a.value,
+                b: register_b.value,
+                c: register_c.value,
+                program: instructions.into(),
+                counter: 0,
+            },
+        ))
     }
 
     #[cfg(test)]
@@ -67,7 +100,7 @@ mod parser {
         }
 
         #[gtest]
-        fn test_parse_input() -> Result<()> {
+        fn test_parse_machine() -> Result<()> {
             let data = "\
 Register A: 729
 Register B: 0
@@ -75,29 +108,17 @@ Register C: 0
 
 Program: 0,1,5,4,3,0
 ";
-            let (input, result) = parse_input(data)?;
+            let (input, machine) = parse_machine(data)?;
             verify_that!(input, eq("\n"))?;
             verify_that!(
-                result,
-                eq(&(
-                    vec![
-                        Register {
-                            name: "A".to_string(),
-                            value: 729
-                        },
-                        Register {
-                            name: "B".to_string(),
-                            value: 0
-                        },
-                        Register {
-                            name: "C".to_string(),
-                            value: 0
-                        },
-                    ]
-                    .into(),
-                    vec![0, 1, 5, 4, 3, 0].into()
-                ))
-            )
+                machine,
+                eq(&(Machine {
+                    a: 729,
+                    b: 0,
+                    c:0,
+                    program: vec![0, 1, 5, 4, 3, 0].into(),
+                    counter: 0
+})))
         }
     }
 }
