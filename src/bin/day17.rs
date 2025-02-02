@@ -19,6 +19,18 @@ struct Machine {
     out: Vec<Integer>,
 }
 
+impl Default for Machine {
+    fn default() -> Self {
+        Self {
+            a: 0,
+            b: 0,
+            c: 0,
+            program: [].into(),
+            counter: 0,
+            out: Vec::new(),
+        }
+    }
+}
 
 impl Machine {
     fn run(&mut self) {
@@ -66,7 +78,7 @@ impl Machine {
         self.a = numerator / denominator;
         self.counter += 2;
     }
-    
+
     fn bdv(&mut self, operand: Opcode) {
         let numerator: Integer = self.a;
         let denominator: Integer = (2 as Integer).pow(self.combo_operand(operand));
@@ -80,7 +92,7 @@ impl Machine {
         self.c = numerator / denominator;
         self.counter += 2;
     }
-    
+
     fn bxl(&mut self, operand: Opcode) {
         self.b = self.b ^ self.literal_operand(operand);
         self.counter += 2;
@@ -104,7 +116,7 @@ impl Machine {
         self.b = self.b ^ self.c;
         self.counter += 2;
     }
-    
+
     fn out(&mut self, operand: Opcode) {
         let output = self.combo_operand(operand) % 8;
         self.out.push(output);
@@ -140,7 +152,7 @@ mod parser {
         Ok((input, vs.into()))
     }
 
-    fn parse_machine(input: &str) -> IResult<&str, Machine> {
+    pub fn parse_machine(input: &str) -> IResult<&str, Machine> {
         let (input, register_a) = terminated(parse_register, line_ending)(input)?;
         // TODO: see how to build our own parse error if this isn't named "A".
         let (input, register_b) = terminated(parse_register, line_ending)(input)?;
@@ -155,8 +167,7 @@ mod parser {
                 b: register_b.value,
                 c: register_c.value,
                 program: instructions.into(),
-                counter: 0,
-                out: Vec::new(),
+                ..Machine::default()
             },
         ))
     }
@@ -203,11 +214,8 @@ Program: 0,1,5,4,3,0
                 machine,
                 eq(&(Machine {
                     a: 729,
-                    b: 0,
-                    c: 0,
                     program: vec![0, 1, 5, 4, 3, 0].into(),
-                    counter: 0,
-                    out: Vec::new(),
+                    ..Machine::default()
                 }))
             )
         }
@@ -215,12 +223,9 @@ Program: 0,1,5,4,3,0
         #[gtest]
         fn test_ex1() -> Result<()> {
             let mut machine = Machine {
-                a: 0,
-                b: 0,
                 c: 9,
                 program: [2, 6].into(),
-                counter: 0,
-                out: Vec::new(),
+                ..Machine::default()
             };
             machine.run();
             verify_that!(machine.b, eq(1))
@@ -230,11 +235,8 @@ Program: 0,1,5,4,3,0
         fn test_ex2() -> Result<()> {
             let mut machine = Machine {
                 a: 10,
-                b: 0,
-                c: 0,
                 program: [5, 0, 5, 1, 5, 4].into(),
-                counter: 0,
-                out: Vec::new(),
+                ..Machine::default()
             };
             machine.run();
             verify_that!(machine.out, [&0, &1, &2])
@@ -244,18 +246,56 @@ Program: 0,1,5,4,3,0
         fn test_ex3() -> Result<()> {
             let mut machine = Machine {
                 a: 2024,
-                b: 0,
-                c: 0,
                 program: [0, 1, 5, 4, 3, 0].into(),
-                counter: 0,
-                out: Vec::new(),
+                ..Machine::default()
             };
             machine.run();
             verify_that!(machine.out, [&4, &2, &5, &6, &7, &7, &7, &7, &3, &1, &0])?;
             verify_that!(machine.a, eq(0))?;
             Ok(())
-        }        
+        }
+
+        #[gtest]
+        fn test_ex4() -> Result<()> {
+            let mut machine = Machine {
+                b: 29,
+                program: [1, 7].into(),
+                ..Machine::default()
+            };
+            machine.run();
+            verify_that!(machine.b, eq(26))
+        }
+
+
+        #[gtest]
+        fn test_ex5() -> Result<()> {
+            let mut machine = Machine {
+                b: 2024,
+                c: 43690,
+                program: [4, 0].into(),
+                ..Machine::default()
+            };
+            machine.run();
+            verify_that!(machine.b, eq(44354))
+        }
+
+        fn test_smaller_program() -> Result<()> {
+            let mut machine = Machine {
+                a: 729,
+                program: [0, 1, 5, 4, 3, 0].into(),
+                ..Machine::default()
+            };
+            machine.run();
+            verify_that!(machine.out, [&4, &6, &3, &5, &6, &3, &5, &2, &1, &0])
+        }
     }
 }
 
-fn main() {}
+fn main() -> Result<(), Box<dyn std::error::Error>>{
+    let input = std::io::read_to_string(std::io::stdin())?;
+    let (_, mut machine) = parser::parse_machine(&input).map_err(|e| e.to_owned())?;
+    machine.run();
+    let output = machine.out.iter().map(|v| format!("{}", v)).collect::<Vec<_>>().join(",");
+    println!("Part 1: {}", output);
+    Ok(())
+}
