@@ -133,6 +133,21 @@ mod tests {
     }
 }
 
+fn my_binary_search(n: usize, pred: impl Fn(usize) -> bool) -> usize {
+    let mut start = 0;
+    let mut end = n;
+    // Loop invariant: some element in my_range makes the predicate false.
+    while start < end {
+        let mid = start + (end - start) / 2;
+        if pred(mid) {
+            start = mid + 1;
+        } else {
+            end = mid;
+        }
+    }
+    start
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = std::io::read_to_string(std::io::stdin())?;
     let (_, coords): (_, Vec<(u8, u8)>) = parser::parse_coords(&input).map_err(|e| e.to_owned())?;
@@ -143,13 +158,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Part 1: {:?}", grid.step_count());
     
     let mut grid = Grid::new(71, 71);
-    for c in coords {
-        grid.mark(c);
+    for c in &coords {
+        grid.mark(*c);
         if grid.step_count().is_none() {
-            println!("Part 2: {:?}", c);
+            println!("Part 2: {:?}", *c);
             break;
         }
     }
 
+    // Other folks suggested using binary search, so let's try that approach too.
+    let idx = my_binary_search(coords.len(),
+        |n| {
+            let mut grid = Grid::new(71, 71);
+            for c in &coords[..=n] {
+                grid.mark(*c);
+            }
+            grid.step_count().is_some()
+        });
+    println!("idx: {:?}, coord: {:?}", idx, coords[idx]);
+    
     Ok(())
 }
