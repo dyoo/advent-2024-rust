@@ -140,8 +140,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for c in &coords[..1024] {
         grid.mark(*c);
     }
-
     println!("Part 1: {:?}", grid.step_count());
     
+    let mut grid = Grid::new(71, 71);
+    for c in coords {
+        grid.mark(c);
+        if grid.step_count().is_none() {
+            println!("Part 2: {:?}", c);
+            break;
+        }
+    }
+
     Ok(())
 }
