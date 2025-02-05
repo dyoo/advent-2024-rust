@@ -1,4 +1,5 @@
 use advent_2024::{Direction, TileIndex};
+use std::time::Instant;
 
 mod parser {
     use nom::bytes::complete::tag;
@@ -77,10 +78,10 @@ impl Grid {
                     continue;
                 }
                 visited[index] = true;
-                if index == visited.len() -1  {
+                if index == visited.len() - 1 {
                     return Some(count);
                 }
-                
+
                 for dir in [
                     Direction::Left,
                     Direction::Right,
@@ -94,10 +95,10 @@ impl Grid {
                     );
                 }
             }
-            count += 1;            
+            count += 1;
             to_visit = to_visit_next;
         }
-        
+
         None
     }
 }
@@ -133,7 +134,7 @@ mod tests {
     }
 }
 
-fn my_binary_search(n: usize, pred: impl Fn(usize) -> bool) -> usize {
+fn my_binary_search(n: usize, mut pred: impl FnMut(usize) -> bool) -> usize {
     let mut start = 0;
     let mut end = n;
     // Loop invariant: some element in my_range makes the predicate false.
@@ -156,26 +157,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         grid.mark(*c);
     }
     println!("Part 1: {:?}", grid.step_count());
-    
+
+    let before = Instant::now();
     let mut grid = Grid::new(71, 71);
     for c in &coords {
         grid.mark(*c);
         if grid.step_count().is_none() {
-            println!("Part 2: {:?}", *c);
+            println!("Part 2 (linear): {:?} (elapsed: {:.2?})", *c, before.elapsed());
             break;
         }
     }
 
+    let before = Instant::now();
     // Other folks suggested using binary search, so let's try that approach too.
-    let idx = my_binary_search(coords.len(),
-        |n| {
-            let mut grid = Grid::new(71, 71);
-            for c in &coords[..=n] {
-                grid.mark(*c);
-            }
-            grid.step_count().is_some()
-        });
-    println!("idx: {:?}, coord: {:?}", idx, coords[idx]);
-    
+    let idx = my_binary_search(coords.len(), |n| {
+        let mut grid = Grid::new(71, 71);
+        for c in &coords[..=n] {
+            grid.mark(*c);
+        }
+        grid.step_count().is_some()
+    });
+    println!("Part 2 (binary): idx: {:?}, coord: {:?} (elapsed: {:.2?})", idx, coords[idx], before.elapsed());
+
     Ok(())
 }
