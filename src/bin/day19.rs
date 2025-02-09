@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-
+use std::time::Instant;
 use std::error::Error;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -95,6 +95,35 @@ fn count_possibles(choices: &[ColorString], pattern: &[Color]) -> u64 {
     suffix_cache[0]
 }
 
+fn count_possibles_memoizing(
+    choices: &[ColorString],
+    pattern: &[Color],
+    cache: &mut [Option<u64>],
+) -> u64 {
+    // Check for cache hit
+    if let Some(hit) = cache[pattern.len()] {
+        return hit;
+    }
+
+    if pattern.is_empty() {
+        return 1;
+    }
+
+    let mut total = 0;
+
+    for choice in choices {
+        if choice.len() > pattern.len() {
+            continue;
+        }
+
+        if pattern[..choice.len()] == choice[..] {
+            total += count_possibles_memoizing(choices, &pattern[choice.len()..], cache);
+        }
+    }
+    cache[pattern.len()] = Some(total);
+    total
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -123,25 +152,40 @@ mod tests {
 fn main() -> Result<(), Box<dyn Error>> {
     let problem = parse_problem(&std::io::read_to_string(std::io::stdin())?)?;
 
+    let before = Instant::now();
     println!(
-        "Part 1: {}",
+        "Part 1: {} {:?}",
         problem
             .designs
             .iter()
             .filter(|design| is_possible(&problem.choices, design))
             .count(),
+        before.elapsed(),
     );
 
+    let before = Instant::now();
     println!(
-        "Part 2: {}",
+        "Part 2: {} {:?}",
         problem
             .designs
             .iter()
-            .map(|design| count_possibles(
-                &problem.choices,
-                &design[..],
-            ))
+            .map(|design| count_possibles(&problem.choices, &design[..],))
             .sum::<u64>(),
+        before.elapsed()
+    );
+
+    let before = Instant::now();
+    println!(
+        "Part 2: {} {:?}",
+        problem
+            .designs
+            .iter()
+            .map(|design| {
+                let mut cache: Vec<Option<u64>> = vec![None; design.len() + 1];
+                count_possibles_memoizing(&problem.choices, &design[..], &mut cache)
+            })
+            .sum::<u64>(),
+        before.elapsed()
     );
 
     Ok(())
