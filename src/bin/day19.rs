@@ -58,7 +58,7 @@ fn parse_problem(s: &str) -> Result<Problem, Box<dyn Error>> {
     Ok(Problem { choices, designs })
 }
 
-fn is_possible(choices: &[ColorString], pattern: &ColorString) -> bool {
+fn is_possible(choices: &[ColorString], pattern: &[Color]) -> bool {
     if pattern.is_empty() {
         return true;
     }
@@ -67,14 +67,32 @@ fn is_possible(choices: &[ColorString], pattern: &ColorString) -> bool {
             continue;
         }
 
-        if pattern[..choice.len()] == choice[..]
-            && is_possible(choices, &pattern[choice.len()..].into())
-        {
+        if pattern[..choice.len()] == choice[..] && is_possible(choices, &pattern[choice.len()..]) {
             return true;
         }
     }
 
     false
+}
+
+fn count_possibles(choices: &[ColorString], pattern: &[Color]) -> u64 {
+    let mut suffix_cache = vec![0; pattern.len() + 1];
+    suffix_cache[pattern.len()] = 1;
+
+    // Work backwards
+    for i in (0..pattern.len()).rev() {
+        for choice in choices {
+            if i + choice.len() > pattern.len() {
+                continue;
+            }
+
+            if choice[..] == pattern[i..i + choice.len()] {
+                suffix_cache[i] += suffix_cache[i + choice.len()];
+            }
+        }
+    }
+    // Final count should be here:
+    suffix_cache[0]
 }
 
 #[cfg(test)]
@@ -112,6 +130,18 @@ fn main() -> Result<(), Box<dyn Error>> {
             .iter()
             .filter(|design| is_possible(&problem.choices, design))
             .count(),
+    );
+
+    println!(
+        "Part 2: {}",
+        problem
+            .designs
+            .iter()
+            .map(|design| count_possibles(
+                &problem.choices,
+                &design[..],
+            ))
+            .sum::<u64>(),
     );
 
     Ok(())
