@@ -58,6 +58,25 @@ fn parse_problem(s: &str) -> Result<Problem, Box<dyn Error>> {
     Ok(Problem { choices, designs })
 }
 
+fn is_possible(choices: &[ColorString], pattern: &ColorString) -> bool {
+    if pattern.is_empty() {
+        return true;
+    }
+    for choice in choices {
+        if choice.len() > pattern.len() {
+            continue;
+        }
+
+        if pattern[..choice.len()] == choice[..]
+            && is_possible(choices, &pattern[choice.len()..].into())
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,8 +102,17 @@ mod tests {
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>>{
-  let problem = parse_problem(&std::io::read_to_string(std::io::stdin())?)?;
+fn main() -> Result<(), Box<dyn Error>> {
+    let problem = parse_problem(&std::io::read_to_string(std::io::stdin())?)?;
 
-  Ok(())
+    println!(
+        "Part 1: {}",
+        problem
+            .designs
+            .iter()
+            .filter(|design| is_possible(&problem.choices, design))
+            .count(),
+    );
+
+    Ok(())
 }
