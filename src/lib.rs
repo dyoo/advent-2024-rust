@@ -12,6 +12,13 @@ pub enum Direction {
     Down,
 }
 
+pub const DIRECTIONS: [Direction; 4] = [
+    Direction::Left,
+    Direction::Right,
+    Direction::Up,
+    Direction::Down,
+];
+
 impl Direction {
     pub fn is_horizontal(&self) -> bool {
         match self {
